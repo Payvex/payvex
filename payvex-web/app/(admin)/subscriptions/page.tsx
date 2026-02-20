@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 
 export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState<string | null>(null); // Estado para o loading do botão de upgrade
   const [data, setData] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
 
@@ -29,7 +30,7 @@ export default function SubscriptionPage() {
         setData(subRes.data);
         setPlans(plansRes.data);
       } catch (err) {
-        console.error(err);
+        console.error("Erro ao carregar dados:", err);
       } finally {
         setLoading(false);
       }
@@ -37,6 +38,35 @@ export default function SubscriptionPage() {
     fetchData();
   }, []);
 
+  // FUNÇÃO DE UPGRADE INTEGRADA AO ASAAS
+  const handleUpgrade = async (planKey: string) => {
+    try {
+      setUpgrading(planKey);
+      console.log("Iniciando checkout para:", planKey);
+
+      const response = await api.post("/subscription/checkout", { planKey });
+
+      // LOG PARA DEBUG: Veja no console do navegador o que o Asaas mandou
+      console.log("Resposta do Backend/Asaas:", response.data);
+
+      // O Asaas usa 'invoiceUrl' para o link da fatura da assinatura
+      const paymentUrl = response.data.checkoutUrl;
+
+      if (paymentUrl) {
+        // Redireciona para o link oficial do Asaas Sandbox
+        window.location.href = paymentUrl;
+      } else {
+        alert(
+          "O Asaas criou a assinatura, mas não retornou um link de fatura.",
+        );
+      }
+    } catch (err: any) {
+      console.error("Erro no checkout:", err);
+      alert(err.response?.data?.message || "Erro ao processar pagamento.");
+    } finally {
+      setUpgrading(null);
+    }
+  };
   if (loading)
     return (
       <div className="flex h-[80vh] items-center justify-center">
@@ -51,7 +81,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="p-6 md:p-10 space-y-8 max-w-[1400px] mx-auto">
-      {/* HEADER IDENTIDADE PAYVEX */}
+      {/* HEADER */}
       <div>
         <h1 className="text-2xl font-bold text-[#3a416f]">
           Assinatura e Planos
@@ -77,9 +107,7 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
-        {/* Grid ajustado para 4 colunas em telas grandes */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-          {/* PROGRESSO REAL */}
           <div className="space-y-3">
             <div className="flex justify-between text-sm font-medium">
               <span className="text-slate-500">Uso de Transações</span>
@@ -95,7 +123,6 @@ export default function SubscriptionPage() {
             </div>
           </div>
 
-          {/* GATEWAYS */}
           <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
             <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400">
               <CreditCard size={20} />
@@ -110,7 +137,6 @@ export default function SubscriptionPage() {
             </div>
           </div>
 
-          {/* NOVO: LIMITE E-COMMERCE */}
           <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
             <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400">
               <Globe size={20} />
@@ -126,7 +152,6 @@ export default function SubscriptionPage() {
             </div>
           </div>
 
-          {/* IA STATUS */}
           <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
             <div
               className={`h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm ${data.hasAiAnalyst ? "text-yellow-500" : "text-slate-400"}`}
@@ -149,65 +174,76 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      {/* PLANOS PARA UPGRADE (Mantido igual) */}
+      {/* PLANOS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan: any) => (
-          <div
-            key={plan.key}
-            className={`bg-white rounded-[32px] p-8 border ${plan.key === "EXPERT_AI" ? "border-[#82d616] ring-4 ring-[#82d616]/5" : "border-slate-100"} flex flex-col`}
-          >
-            <h3 className="text-lg font-bold text-[#3a416f]">{plan.name}</h3>
-            <div className="my-6 flex items-baseline gap-1">
-              <span className="text-4xl font-black text-[#3a416f]">
-                R$ {plan.price.toLocaleString("pt-BR")}
-              </span>
-              <span className="text-slate-400 text-sm">/mês</span>
-            </div>
+        {plans.map((plan: any) => {
+          const isCurrentPlan =
+            data.planName.toUpperCase() === plan.name.toUpperCase();
+          const isUpgradingThis = upgrading === plan.key;
 
-            <ul className="space-y-4 mb-10 flex-1">
-              {[
-                {
-                  label: `${plan.transactionsLimit.toLocaleString()} transações`,
-                  check: true,
-                },
-                { label: `${plan.gatewaysLimit} Gateways`, check: true },
-                {
-                  label: `${plan.multiAppLimit} integração e-commerce`,
-                  check: true,
-                },
-                { label: "Analista de IA Data-Bot", check: plan.hasAiAnalyst },
-              ].map((item, i) => (
+          return (
+            <div
+              key={plan.key}
+              className={`bg-white rounded-[32px] p-8 border ${plan.key === "EXPERT_AI" ? "border-[#82d616] ring-4 ring-[#82d616]/5" : "border-slate-100"} flex flex-col`}
+            >
+              <h3 className="text-lg font-bold text-[#3a416f]">{plan.name}</h3>
+              <div className="my-6 flex items-baseline gap-1">
+                <span className="text-4xl font-black text-[#3a416f]">
+                  R$ {plan.price.toLocaleString("pt-BR")}
+                </span>
+                <span className="text-slate-400 text-sm">/mês</span>
+              </div>
+
+              <ul className="space-y-4 mb-10 flex-1">
+                <li className="flex items-center gap-3 text-sm text-slate-700">
+                  <Check size={18} className="text-[#059669]" />{" "}
+                  {plan.transactionsLimit.toLocaleString()} transações
+                </li>
+                <li className="flex items-center gap-3 text-sm text-slate-700">
+                  <Check size={18} className="text-[#059669]" />{" "}
+                  {plan.gatewaysLimit} Gateways
+                </li>
+                <li className="flex items-center gap-3 text-sm text-slate-700">
+                  <Check size={18} className="text-[#059669]" />{" "}
+                  {plan.multiAppLimit} integração e-commerce
+                </li>
                 <li
-                  key={i}
-                  className={`flex items-center gap-3 text-sm ${item.check ? "text-slate-700" : "text-slate-300"}`}
+                  className={`flex items-center gap-3 text-sm ${plan.hasAiAnalyst ? "text-slate-700 font-bold" : "text-slate-300"}`}
                 >
-                  {item.check ? (
-                    <Check size={18} className="text-[#059669]" />
+                  {plan.hasAiAnalyst ? (
+                    <Zap
+                      size={18}
+                      className="text-yellow-500 fill-yellow-500"
+                    />
                   ) : (
                     <Lock size={18} />
-                  )}
-                  {item.label}
+                  )}{" "}
+                  Analista de IA Data-Bot
                 </li>
-              ))}
-            </ul>
+              </ul>
 
-            <button
-              className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
-                data.planName.toUpperCase() === plan.name.toUpperCase()
-                  ? "bg-slate-100 text-slate-400 cursor-default"
-                  : "bg-[#82d616] hover:bg-[#71bd13] text-[#3a416f] shadow-lg shadow-[#82d616]/20"
-              }`}
-            >
-              {data.planName.toUpperCase() === plan.name.toUpperCase() ? (
-                "Plano Atual"
-              ) : (
-                <>
-                  <ArrowUpCircle size={20} /> Assinar Plano
-                </>
-              )}
-            </button>
-          </div>
-        ))}
+              <button
+                disabled={isCurrentPlan || !!upgrading}
+                onClick={() => handleUpgrade(plan.key)}
+                className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
+                  isCurrentPlan
+                    ? "bg-slate-100 text-slate-400 cursor-default"
+                    : "bg-[#82d616] hover:bg-[#71bd13] text-[#3a416f] shadow-lg shadow-[#82d616]/20"
+                } ${upgrading ? "opacity-70 cursor-not-allowed" : ""}`}
+              >
+                {isCurrentPlan ? (
+                  "Plano Atual"
+                ) : isUpgradingThis ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <ArrowUpCircle size={20} /> Assinar Plano
+                  </>
+                )}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

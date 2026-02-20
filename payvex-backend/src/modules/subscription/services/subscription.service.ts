@@ -1,7 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service/prisma.service';
-import { PAYVEX_PLANS } from '../interfaces/subscriptions.interface';
 
 @Injectable()
 export class SubscriptionService {
@@ -28,27 +27,5 @@ export class SubscriptionService {
       ...subscription,
       currentUsage: transactionCount, // Valor real do banco para a barra de progresso
     };
-  }
-
-  // Atualiza os limites no banco (Upgrade de Plano)
-  async upgradePlan(companyId: string, planKey: keyof typeof PAYVEX_PLANS) {
-    const plan = PAYVEX_PLANS[planKey];
-
-    if (!plan) {
-      throw new Error('Plano não encontrado no sistema.');
-    }
-
-    return await this.prisma.subscription.update({
-      where: { companyId },
-      data: {
-        planName: plan.name,
-        gatewaysLimit: plan.gatewaysLimit,
-        usersLimit: plan.usersLimit,
-        transactionsLimit: plan.transactionsLimit,
-        hasAiAnalyst: plan.hasAiAnalyst,
-        multiAppLimit: plan.multiAppLimit,
-        status: 'ativo',
-      },
-    });
   }
 }

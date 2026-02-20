@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
 import {
   ConflictException,
@@ -14,7 +10,6 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma.service/prisma.service';
 import { CreateUserDto } from '../dtos/identity.create.dtos';
 
-
 export type AuthenticatedUser = {
   id: string;
   companyId: string;
@@ -24,20 +19,15 @@ export type AuthenticatedUser = {
 
 @Injectable()
 export class IdentityCreateService {
- 
   constructor(private prisma: PrismaService) {}
 
- 
-  async createCollaborator(
-    dto: CreateUserDto,
-    adminUser: AuthenticatedUser, 
-  ) {
-    
+  async createCollaborator(dto: CreateUserDto, adminUser: AuthenticatedUser) {
     if (adminUser.role !== 'ADMIN') {
-      throw new ForbiddenException('Apenas administradores podem adicionar usuários.');
+      throw new ForbiddenException(
+        'Apenas administradores podem adicionar usuários.',
+      );
     }
 
-    
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });

@@ -7,6 +7,7 @@ export const PAYVEX_PLANS = {
     transactionsLimit: 1500,
     hasAiAnalyst: false,
     multiAppLimit: 1,
+    prioritySupport: false,
   },
   PRO: {
     name: 'Pro',
@@ -16,6 +17,7 @@ export const PAYVEX_PLANS = {
     transactionsLimit: 10000,
     hasAiAnalyst: false,
     multiAppLimit: 5,
+    prioritySupport: true,
   },
   EXPERT_AI: {
     name: 'Expert AI',
@@ -25,5 +27,6 @@ export const PAYVEX_PLANS = {
     transactionsLimit: 1000000, // Praticamente ilimitado
     hasAiAnalyst: true,
     multiAppLimit: 10,
+    prioritySupport: true,
   },
 };

@@ -30,6 +30,35 @@ export class TransactionsService {
    * Orquestra a busca da filial, descriptografia das chaves e chamada ao gateway.
    */
   async create(dto: CreateTransactionDto, companyId: string) {
+    // 🛡️ TRAVA 1: Validar Assinatura Ativa e Limite de Transações
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { companyId },
+    });
+
+    if (!subscription || subscription.status !== 'ativo') {
+      throw new ForbiddenException(
+        'Sua assinatura está inativa ou pendente no Asaas.',
+      );
+    }
+
+    // Definir o início do mês atual para contagem de cota
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const transactionsCount = await this.prisma.transaction.count({
+      where: {
+        filial: { companyId },
+        createdAt: { gte: startOfMonth },
+      },
+    });
+
+    if (transactionsCount >= subscription.transactionsLimit) {
+      throw new ForbiddenException(
+        `Limite mensal de transações atingido (${subscription.transactionsLimit}). Realize um upgrade para continuar vendendo.`,
+      );
+    }
+
     // 1. Validação de Filial e Permissão
     const filial = await this.prisma.filial.findFirst({
       where: {
