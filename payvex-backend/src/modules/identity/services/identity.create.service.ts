@@ -71,14 +71,8 @@ export class IdentityCreateService {
         companyId: companyId,
       },
     });
-
-    // 5. RETORNAR O USUÁRIO (Forma Correta)
-    // Usamos destructuring para "puxar" o passwordHash para uma variável
-    // (que nomeamos como '_' para indicar que não vamos usá-la)
-    // e colocamos o 'resto' (...result) em um novo objeto.
     const { passwordHash: _, ...result } = newUser;
 
-    // 'result' é agora um novo objeto User sem o passwordHash.
     return result;
   }
 }

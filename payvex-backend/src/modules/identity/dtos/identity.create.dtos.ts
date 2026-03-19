@@ -1,4 +1,11 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsString, MinLength } from 'class-validator';
+/* eslint-disable prettier/prettier */
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+} from 'class-validator';
 // Importe o Enum direto do Prisma Client (ele é gerado automaticamente)
 import { Role } from '@prisma/client';
 
@@ -19,4 +26,7 @@ export class CreateUserDto {
   @IsEnum(Role, { message: 'O "role" deve ser ADMIN ou USER' })
   @IsNotEmpty({ message: 'A "role" (função) do usuário é obrigatória.' })
   role: Role; // O admin define se o novo usuário é 'ADMIN' ou 'USER'
+
+  @IsString()
+  filialId?: string;
 }

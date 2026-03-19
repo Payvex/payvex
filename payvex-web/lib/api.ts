@@ -7,24 +7,36 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const savedUser = localStorage.getItem("@payvex:user");
-    console.log("1. Interceptor rodou!");
-    console.log("2. O que tem no localStorage?", savedUser);
 
     if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      console.log("3. Token extraído:", parsed.token);
-
-      if (parsed.token) {
-        config.headers.Authorization = `Bearer ${parsed.token}`;
-        console.log("4. Header injetado com sucesso!");
-      } else {
-        console.warn("⚠️ Token não encontrado dentro do objeto do usuário!");
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed.token) {
+          config.headers.Authorization = `Bearer ${parsed.token}`;
+        }
+      } catch (e) {
+        console.error("Erro ao dar parse no usuário do localStorage", e);
       }
     } else {
-      console.error("❌ Usuário não encontrado no localStorage!");
+      // 🚨 Se cair aqui, você precisa deslogar o usuário ou redirecionar para o login
+      console.warn("Sessão expirada ou usuário não logado.");
     }
 
     return config;
   },
   (error) => Promise.reject(error),
+);
+
+api.interceptors.response.use(
+  (response) => {
+    console.log(`[AXIOS SUCCESS] URL: ${response.config.url}`, response.data);
+    return response;
+  },
+  (error) => {
+    console.error(
+      `[AXIOS ERROR] URL: ${error.config?.url}`,
+      error.response?.data || error.message,
+    );
+    return Promise.reject(error);
+  },
 );

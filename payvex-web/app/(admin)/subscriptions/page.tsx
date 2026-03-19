@@ -1,28 +1,49 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { PageTransition } from "@/components/page-transition";
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import {
+  ArrowLeft,
   ArrowUpCircle,
   Check,
   CreditCard,
   Globe,
   Loader2,
   Lock,
+  ShieldAlert,
   ShieldCheck,
   Zap,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function SubscriptionPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [upgrading, setUpgrading] = useState<string | null>(null); // Estado para o loading do botão de upgrade
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const checkAuthAndFetch = async () => {
       try {
+        // 1. Verificação imediata de Role
+        const savedUser = JSON.parse(
+          localStorage.getItem("@payvex:user") || "{}",
+        );
+        const role = savedUser.role;
+        setUserRole(role);
+
+        // 2. Se não for ADMIN, nem dispara os gatilhos da API
+        if (role !== "ADMIN") {
+          setLoading(false);
+          return;
+        }
+
+        // 3. Se for ADMIN, carrega os dados financeiros
         const [subRes, plansRes] = await Promise.all([
           api.get("/my-subscription"),
           api.get("/plans"),
@@ -35,25 +56,16 @@ export default function SubscriptionPage() {
         setLoading(false);
       }
     };
-    fetchData();
+    checkAuthAndFetch();
   }, []);
 
-  // FUNÇÃO DE UPGRADE INTEGRADA AO ASAAS
   const handleUpgrade = async (planKey: string) => {
     try {
       setUpgrading(planKey);
-      console.log("Iniciando checkout para:", planKey);
-
       const response = await api.post("/subscription/checkout", { planKey });
-
-      // LOG PARA DEBUG: Veja no console do navegador o que o Asaas mandou
-      console.log("Resposta do Backend/Asaas:", response.data);
-
-      // O Asaas usa 'invoiceUrl' para o link da fatura da assinatura
       const paymentUrl = response.data.checkoutUrl;
 
       if (paymentUrl) {
-        // Redireciona para o link oficial do Asaas Sandbox
         window.location.href = paymentUrl;
       } else {
         alert(
@@ -61,12 +73,13 @@ export default function SubscriptionPage() {
         );
       }
     } catch (err: any) {
-      console.error("Erro no checkout:", err);
       alert(err.response?.data?.message || "Erro ao processar pagamento.");
     } finally {
       setUpgrading(null);
     }
   };
+
+  // --- TELA DE CARREGAMENTO ---
   if (loading)
     return (
       <div className="flex h-[80vh] items-center justify-center">
@@ -74,13 +87,46 @@ export default function SubscriptionPage() {
       </div>
     );
 
-  const usagePercent = Math.min(
-    (data.currentUsage / data.transactionsLimit) * 100,
-    100,
-  );
+  // --- TELA DE RESTRIÇÃO PARA USUÁRIO COMUM ---
+  if (userRole !== "ADMIN") {
+    return (
+      <PageTransition>
+        <div className="max-w-2xl mx-auto flex flex-col items-center justify-center space-y-6 py-24 text-center">
+          <div className="h-24 w-24 bg-[#3a416f]/10 rounded-full flex items-center justify-center text-[#3a416f] border border-[#3a416f]/20 shadow-2xl shadow-[#3a416f]/10">
+            <ShieldAlert size={48} />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-black text-[#3a416f]">
+              Gestão de Assinatura
+            </h1>
+            <p className="text-slate-500 max-w-md mx-auto">
+              A visualização de faturas, limites de consumo e upgrade de planos
+              é restrita ao
+              <b> Proprietário da Conta</b>. Colaboradores não têm permissão de
+              alteração financeira.
+            </p>
+          </div>
+          <div className="flex gap-4 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard")}
+              className="rounded-xl gap-2 font-bold border-slate-200"
+            >
+              <ArrowLeft size={18} /> Ir para o Dashboard
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  // --- LAYOUT ORIGINAL (APENAS PARA ADMIN) ---
+  const usagePercent = data
+    ? Math.min((data.currentUsage / data.transactionsLimit) * 100, 100)
+    : 0;
 
   return (
-    <div className="p-6 md:p-10 space-y-8 max-w-[1400px] mx-auto">
+    <div className="p-6 md:p-10 space-y-8 max-w-[1400px] mx-auto animate-in fade-in duration-500">
       {/* HEADER */}
       <div>
         <h1 className="text-2xl font-bold text-[#3a416f]">
@@ -99,11 +145,11 @@ export default function SubscriptionPage() {
               Plano Ativo
             </span>
             <h2 className="text-3xl font-black text-[#3a416f]">
-              {data.planName.toUpperCase()}
+              {data?.planName?.toUpperCase()}
             </h2>
           </div>
           <div className="bg-[#ECFDF5] text-[#059669] px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-bold border border-[#D1FAE5]">
-            <ShieldCheck size={16} /> Status: {data.status}
+            <ShieldCheck size={16} /> Status: {data?.status}
           </div>
         </div>
 
@@ -112,7 +158,7 @@ export default function SubscriptionPage() {
             <div className="flex justify-between text-sm font-medium">
               <span className="text-slate-500">Uso de Transações</span>
               <span className="text-slate-800">
-                {data.currentUsage} / {data.transactionsLimit}
+                {data?.currentUsage} / {data?.transactionsLimit}
               </span>
             </div>
             <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -132,7 +178,7 @@ export default function SubscriptionPage() {
                 Limites de Gateways
               </p>
               <p className="font-bold text-[#3a416f]">
-                {data.gatewaysLimit} Conexões
+                {data?.gatewaysLimit} Conexões
               </p>
             </div>
           </div>
@@ -146,17 +192,17 @@ export default function SubscriptionPage() {
                 Apps E-commerce
               </p>
               <p className="font-bold text-[#3a416f]">
-                Até {data.multiAppLimit}{" "}
-                {data.multiAppLimit > 1 ? "Lojas" : "Loja"}
+                Até {data?.multiAppLimit}{" "}
+                {data?.multiAppLimit > 1 ? "Lojas" : "Loja"}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
             <div
-              className={`h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm ${data.hasAiAnalyst ? "text-yellow-500" : "text-slate-400"}`}
+              className={`h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm ${data?.hasAiAnalyst ? "text-yellow-500" : "text-slate-400"}`}
             >
-              {data.hasAiAnalyst ? (
+              {data?.hasAiAnalyst ? (
                 <Zap size={20} fill="currentColor" />
               ) : (
                 <Lock size={20} />
@@ -167,18 +213,18 @@ export default function SubscriptionPage() {
                 Analista de IA
               </p>
               <p className="font-bold text-[#3a416f]">
-                {data.hasAiAnalyst ? "Liberado" : "Bloqueado"}
+                {data?.hasAiAnalyst ? "Liberado" : "Bloqueado"}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* PLANOS */}
+      {/* LISTAGEM DE PLANOS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {plans.map((plan: any) => {
           const isCurrentPlan =
-            data.planName.toUpperCase() === plan.name.toUpperCase();
+            data?.planName?.toUpperCase() === plan.name.toUpperCase();
           const isUpgradingThis = upgrading === plan.key;
 
           return (
@@ -217,7 +263,7 @@ export default function SubscriptionPage() {
                     />
                   ) : (
                     <Lock size={18} />
-                  )}{" "}
+                  )}
                   Analista de IA Data-Bot
                 </li>
               </ul>

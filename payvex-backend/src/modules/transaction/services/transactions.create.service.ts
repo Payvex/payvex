@@ -25,10 +25,6 @@ export class TransactionsService {
   // 🔑 Chave mestra centralizada para descriptografia
   private readonly MASTER_KEY = process.env.ENCRYPTION_KEY;
 
-  /**
-   * 💳 CRIAÇÃO DE TRANSAÇÃO
-   * Orquestra a busca da filial, descriptografia das chaves e chamada ao gateway.
-   */
   async create(dto: CreateTransactionDto, companyId: string) {
     // 🛡️ TRAVA 1: Validar Assinatura Ativa e Limite de Transações
     const subscription = await this.prisma.subscription.findUnique({
@@ -41,7 +37,6 @@ export class TransactionsService {
       );
     }
 
-    // Definir o início do mês atual para contagem de cota
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);

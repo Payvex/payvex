@@ -1,26 +1,49 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable prettier/prettier */
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { TransactionStatus } from '@prisma/client';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { TransactionsFindAllService } from '../services/transactions.service';
 
 @Controller('transactions')
-@UseGuards(JwtAuthGuard) // Protege para que só usuários logados vejam
+@UseGuards(JwtAuthGuard)
 export class TransactionsFindAllController {
-  constructor(private readonly transactionsService: TransactionsFindAllService) {}
+  constructor(
+    private readonly transactionsService: TransactionsFindAllService,
+  ) {}
 
-  // Rota: GET /transactions?filialId=xxx&status=PAID
+  // 🚀 ADICIONE ESTE MÉTODO (O QUE ESTAVA DANDO 404)
   @Get()
-  async findAll(
-    @Query('filialId') filialId: string,
-    @Query('status') status?: TransactionStatus,
-  ) {
-    return this.transactionsService.findAll(filialId, status);
+  async findAll(@Req() req: any, @Query('filialId') filialId?: string) {
+    return this.transactionsService.findAll(req.user.companyId, filialId);
   }
 
-  // Rota: GET /transactions/stats/:filialId
-  @Get('stats/:filialId')
-  async getStats(@Param('filialId') filialId: string) {
-    return this.transactionsService.getStats(filialId);
+  @Get('stats')
+  async getStats(
+    @Req() req: any,
+    @Query('filialId') filialId?: string,
+    @Query('gateway') gateway?: string,
+  ) {
+    return this.transactionsService.getStats(
+      req.user.companyId,
+      filialId,
+      gateway,
+    );
+  }
+
+  @Get('chart')
+  async getChartData(
+    @Req() req: any,
+    @Query('filialId') filialId?: string,
+    @Query('gateway') gateway?: string,
+  ) {
+    return this.transactionsService.getChartData(
+      req.user.companyId,
+      filialId,
+      gateway,
+    );
   }
 }

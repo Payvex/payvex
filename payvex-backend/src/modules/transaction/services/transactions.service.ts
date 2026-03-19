@@ -1,43 +1,98 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
-import { TransactionStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service/prisma.service';
 
 @Injectable()
 export class TransactionsFindAllService {
   constructor(private prisma: PrismaService) {}
 
-  // 1. Lista todas as transações de uma filial com filtros
-  async findAll(filialId: string, status?: TransactionStatus) {
+  async findAll(companyId: string, filialId?: string) {
     return this.prisma.transaction.findMany({
       where: {
-        filialId,
-        ...(status && { status }), // Só filtra por status se ele for enviado
+        filial: {
+          companyId: companyId, // Segurança Multitenant
+        },
+        ...(filialId && { filialId }),
       },
-      orderBy: { createdAt: 'desc' }, // Mais recentes primeiro
+      orderBy: { createdAt: 'desc' },
+      include: { filial: true }, // Opcional: para trazer dados da filial junto
     });
   }
 
-  // 2. Calcula os totais para os "Cards" do Dashboard
-  async getStats(filialId: string) {
-  const stats = await this.prisma.transaction.groupBy({
-    by: ['status'],
-    where: { filialId },
-    _sum: {
-      amount: true,
-      fee: true,
-      netAmount: true,
-    },
-  });
+  // 1. Cálculos de Estatísticas (Corrigido para filtrar via Filial)
+  async getStats(companyId: string, filialId?: string, gateway?: string) {
+    const where: any = {
+      // Em vez de companyId direto, filtramos pela relação com a filial
+      filial: {
+        companyId: companyId,
+      },
+      ...(filialId && { filialId }),
+      ...(gateway && { gateway: gateway.toUpperCase() }),
+    };
 
-  const paid = stats.find(s => s.status === 'PAID');
+    const stats = await this.prisma.transaction.groupBy({
+      by: ['status'],
+      where,
+      _sum: {
+        amount: true,
+        fee: true,
+        netAmount: true,
+      },
+      _count: { id: true },
+    });
 
-  return {
-    totalSales: Number(paid?._sum.amount || 0),
-    totalFees: Number(paid?._sum.fee || 0),
-    totalNet: Number(paid?._sum.netAmount || 0), // O que realmente vai para o bolso
-    pendingAmount: Number(stats.find(s => s.status === 'PENDING')?._sum.amount || 0),
-  };
-}
+    const paid = stats.find((s) => s.status === 'PAID');
+    const pending = stats.find((s) => s.status === 'PENDING');
 
+    return {
+      totalSales: Number(paid?._sum.amount || 0),
+      totalFees: Number(paid?._sum.fee || 0),
+      totalNet: Number(paid?._sum.netAmount || 0),
+      count: paid?._count.id || 0,
+      pendingAmount: Number(pending?._sum.amount || 0),
+    };
   }
+
+  // 2. Dados para o Gráfico (Corrigido para filtrar via Filial)
+  async getChartData(companyId: string, filialId?: string, gateway?: string) {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const where: any = {
+      filial: {
+        companyId: companyId,
+      },
+      status: 'PAID',
+      createdAt: { gte: thirtyDaysAgo },
+      ...(filialId && { filialId }),
+      ...(gateway && { gateway: gateway.toUpperCase() }),
+    };
+
+    const dailyTransactions = await this.prisma.transaction.findMany({
+      where,
+      select: {
+        createdAt: true,
+        amount: true,
+        netAmount: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const chartMap = new Map();
+
+    dailyTransactions.forEach((tx) => {
+      const date = tx.createdAt.toISOString().split('T')[0];
+      const current = chartMap.get(date) || { date, sales: 0, net: 0 };
+      chartMap.set(date, {
+        date,
+        sales: current.sales + Number(tx.amount),
+        net: current.net + Number(tx.netAmount),
+      });
+    });
+
+    return Array.from(chartMap.values());
+  }
+}

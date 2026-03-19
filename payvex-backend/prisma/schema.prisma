@@ -37,28 +37,34 @@ model Company {
 
 // Modelo da Filial
 model Filial {
-  id           String        @id @default(cuid())
-  name         String
-  cnpj         String        @unique
-  
-  // Configurações de Integração (BYOK - Bring Your Own Key)
-  // Deixamos como opcionais pois o cliente pode configurar só um ou outro
-  stripeSecretKey      String?   
-  stripePublicKey      String?   
+  id                     String        @id @default(cuid())
+  name                   String
+  cnpj                   String        @unique
+  isActive               Boolean       @default(true) // Soft Delete
+
+  // Endereço da Unidade
+  cep                    String?
+  logradouro             String?
+  bairro                 String?
+  cidade                 String?
+  uf                     String?       @db.VarChar(2) // Ex: BA, SP, RJ
+
+  // Configurações de Integração (BYOK)
+  stripeSecretKey        String?   
+  stripePublicKey        String?   
   mercadoPagoAccessToken String?
-  stripeWebhookSecret String?
+  stripeWebhookSecret    String?
   
   // Relacionamentos
   companyId    String
   company      Company       @relation(fields: [companyId], references: [id])
   transactions Transaction[] 
-
+  apiKeys   ApiKey[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   @@index([companyId])
 }
-
 
 // Modelo do Colaborador
 // É o usuário que pertence a uma empresa.
@@ -134,6 +140,18 @@ model Transaction {
   @@index([filialId])
   @@index([externalId])
   @@index([status]) // Indexar status é ótimo para filtros no Dashboard
+}
+
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  key       String   @unique // px_live_...
+  name      String   // Ex: "Loja Principal WordPress"
+  webhookUrl String?
+  filialId  String
+  filial    Filial   @relation(fields: [filialId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 }
 
 // Enum para os papéis de usuário

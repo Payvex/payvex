@@ -12,9 +12,10 @@ import { TransactionsCreateController } from '../controllers/transactions.create
 import { PrismaService } from 'src/prisma.service/prisma.service';
 import { TransactionsService } from '../services/transactions.create.service';
 import { TransactionsFindAllService } from '../services/transactions.service';
+import { WebhookModule } from '../webhooks/webhooks.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, WebhookModule],
 
   controllers: [TransactionsCreateController, TransactionsFindAllController],
   providers: [

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
+  ArrowLeft,
   ArrowRight,
   Barcode,
   Building2,
@@ -16,7 +17,8 @@ import {
   DollarSign,
   Loader2,
   Mail,
-  User,
+  ShieldAlert,
+  User as UserIcon,
   Wallet,
   Zap,
 } from "lucide-react";
@@ -27,6 +29,8 @@ import { toast } from "react-hot-toast";
 export default function NewPaymentPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [userRole, setUserRole] = useState<string>("USER");
   const [filiais, setFiliais] = useState<any[]>([]);
 
   // Estado do Formulário
@@ -39,50 +43,58 @@ export default function NewPaymentPage() {
     customerEmail: "",
   });
 
-  // Carregar filiais para o seletor
   useEffect(() => {
-    async function loadFiliais() {
+    async function loadData() {
       try {
         const savedUser = JSON.parse(
           localStorage.getItem("@payvex:user") || "{}",
         );
-        const res = await api.get(`/companies/${savedUser.companyId}`);
-        setFiliais(res.data.filiais || []);
+        setUserRole(savedUser.role);
 
-        if (res.data.filiais?.length > 0) {
-          setFormData((prev) => ({
-            ...prev,
-            filialId: res.data.filiais[0].id,
-          }));
+        // Se for ADMIN, carregamos as filiais
+        if (savedUser.role === "ADMIN") {
+          const res = await api.get(`/companies/${savedUser.companyId}`);
+          const filiaisAtivas = (res.data.filiais || []).filter(
+            (f: any) => f.isActive === true,
+          );
+
+          setFiliais(filiaisAtivas);
+
+          if (filiaisAtivas.length > 0) {
+            setFormData((prev) => ({
+              ...prev,
+              filialId: filiaisAtivas[0].id,
+            }));
+          }
         }
       } catch (e) {
-        toast.error("Erro ao carregar filiais.");
+        toast.error("Erro ao carregar dados de segurança.");
+      } finally {
+        setCheckingAuth(false);
       }
     }
-    loadFiliais();
+    loadData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (userRole !== "ADMIN") return; // Dupla validação
 
+    setLoading(true);
     try {
-      // 🚀 Consumindo seu serviço: POST /transactions/create
       const payload = {
         ...formData,
-        amount: parseFloat(formData.amount), // Converte para número
+        amount: parseFloat(formData.amount),
       };
 
       const response = await api.post("/transactions/create", payload);
-
       toast.success("Pagamento gerado com sucesso!");
 
-      // Se o gateway retornar uma URL de pagamento ou QR Code, redirecionamos ou mostramos
       if (response.data.paymentUrl) {
         window.open(response.data.paymentUrl, "_blank");
       }
 
-      router.push("/transactions"); // Redireciona para o histórico
+      router.push("/transactions");
     } catch (error: any) {
       const msg =
         error.response?.data?.message || "Erro ao processar transação.";
@@ -92,11 +104,59 @@ export default function NewPaymentPage() {
     }
   };
 
+  // 1. TELA DE CARREGAMENTO INICIAL
+  if (checkingAuth) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#82d616]" />
+      </div>
+    );
+  }
+
+  // 2. TELA DE AVISO PARA "USER" (BLOQUEIO)
+  if (userRole !== "ADMIN") {
+    return (
+      <PageTransition>
+        <div className="max-w-2xl mx-auto flex flex-col items-center justify-center space-y-6 py-20 text-center">
+          <div className="h-24 w-24 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 border border-amber-500/20 shadow-2xl shadow-amber-500/20">
+            <ShieldAlert size={48} />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-black text-[#3a416f]">
+              Acesso Restrito
+            </h1>
+            <p className="text-slate-500 max-w-md mx-auto">
+              Sua conta de <b>Colaborador</b> possui permissões apenas para
+              visualização. A criação de novas cobranças é exclusiva para
+              usuários com perfil <b>Administrador</b>.
+            </p>
+          </div>
+          <div className="flex gap-4 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => router.back()}
+              className="rounded-xl border-slate-200 gap-2 font-bold"
+            >
+              <ArrowLeft size={18} /> Voltar
+            </Button>
+            <Button
+              onClick={() => router.push("/transactions")}
+              className="bg-[#3a416f] text-white hover:bg-[#2a3052] rounded-xl font-bold"
+            >
+              Ver Extrato de Vendas
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  // 3. RENDERIZAÇÃO DO FORMULÁRIO (APENAS PARA ADMIN)
   return (
     <PageTransition>
       <div className="max-w-4xl mx-auto space-y-8 pb-10">
-        <header className="space-y-1">
-          <div className="flex items-center gap-2 text-[#3a416f]/60 font-semibold text-sm uppercase tracking-widest">
+        <header className="space-y-1 text-center md:text-left">
+          <div className="flex items-center justify-center md:justify-start gap-2 text-[#3a416f]/60 font-semibold text-sm uppercase tracking-widest">
             <CircleDollarSign size={16} className="text-[#82d616]" />
             <span>Terminal de Vendas</span>
           </div>
@@ -112,14 +172,12 @@ export default function NewPaymentPage() {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
-          {/* COLUNA 1 & 2: DADOS DA VENDA */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white p-8 rounded-[0.625rem] border border-slate-100 shadow-sm space-y-6">
-              {/* SELETOR DE FILIAL (CRÍTICO PARA BYOK) */}
               <div className="space-y-3">
                 <Label className="text-[#3a416f] font-bold flex items-center gap-2">
                   <Building2 size={16} className="text-[#82d616]" /> Selecionar
-                  Filial (Emissor)
+                  Filial
                 </Label>
                 <select
                   className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-[#3a416f] outline-none focus:border-[#82d616] transition-all"
@@ -135,23 +193,18 @@ export default function NewPaymentPage() {
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-slate-400 italic">
-                  A transação será processada com as chaves API desta unidade.
-                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <Label className="text-[#3a416f] font-bold">
-                    Valor da Transação
-                  </Label>
+                  <Label className="text-[#3a416f] font-bold">Valor</Label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-3.5 h-5 w-5 text-[#82d616]" />
                     <Input
                       type="number"
                       step="0.01"
                       placeholder="0,00"
-                      className="pl-10 h-12 rounded-xl bg-slate-50 border-slate-200"
+                      className="pl-10 h-12 rounded-xl bg-slate-50"
                       value={formData.amount}
                       onChange={(e) =>
                         setFormData({ ...formData, amount: e.target.value })
@@ -162,9 +215,7 @@ export default function NewPaymentPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label className="text-[#3a416f] font-bold">
-                    Gateway de Destino
-                  </Label>
+                  <Label className="text-[#3a416f] font-bold">Gateway</Label>
                   <select
                     className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-[#3a416f] outline-none"
                     value={formData.gateway}
@@ -179,12 +230,12 @@ export default function NewPaymentPage() {
               </div>
 
               <div className="space-y-4 pt-4 border-t border-slate-100">
-                <h3 className="text-[#3a416f] font-bold text-sm uppercase tracking-wider">
-                  Dados do Cliente
+                <h3 className="text-[#3a416f] font-bold text-sm uppercase tracking-wider text-slate-400">
+                  Cliente
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="relative">
-                    <User className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                    <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
                     <Input
                       placeholder="Nome Completo"
                       className="pl-10 h-12 rounded-xl"
@@ -202,7 +253,7 @@ export default function NewPaymentPage() {
                     <Mail className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
                     <Input
                       type="email"
-                      placeholder="E-mail para recibo"
+                      placeholder="E-mail"
                       className="pl-10 h-12 rounded-xl"
                       value={formData.customerEmail}
                       onChange={(e) =>
@@ -219,89 +270,59 @@ export default function NewPaymentPage() {
             </div>
           </div>
 
-          {/* COLUNA 3: MÉTODO DE PAGAMENTO E RESUMO */}
           <div className="space-y-6">
             <div className="bg-[#3a416f] p-8 rounded-[0.625rem] text-white shadow-xl relative overflow-hidden">
               <div className="absolute top-[-20%] right-[-20%] w-32 h-32 bg-[#82d616] rounded-full blur-[60px] opacity-20"></div>
-
               <h3 className="font-bold mb-6 flex items-center gap-2">
                 <Zap size={18} className="text-[#82d616]" /> Método
               </h3>
-
               <div className="space-y-3 relative z-10">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData({ ...formData, paymentMethod: "CREDIT_CARD" })
-                  }
-                  className={cn(
-                    "w-full p-4 rounded-xl border flex items-center justify-between transition-all",
-                    formData.paymentMethod === "CREDIT_CARD"
-                      ? "border-[#82d616] bg-[#82d616]/10"
-                      : "border-white/10 hover:bg-white/5",
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <CreditCard size={20} />
-                    <span className="font-bold text-sm">Cartão de Crédito</span>
-                  </div>
-                  {formData.paymentMethod === "CREDIT_CARD" && (
-                    <div className="h-2 w-2 bg-[#82d616] rounded-full shadow-[0_0_10px_#82d616]" />
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData({ ...formData, paymentMethod: "PIX" })
-                  }
-                  className={cn(
-                    "w-full p-4 rounded-xl border flex items-center justify-between transition-all",
-                    formData.paymentMethod === "PIX"
-                      ? "border-[#82d616] bg-[#82d616]/10"
-                      : "border-white/10 hover:bg-white/5",
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <Wallet size={20} />
-                    <span className="font-bold text-sm">PIX Instantâneo</span>
-                  </div>
-                  {formData.paymentMethod === "PIX" && (
-                    <div className="h-2 w-2 bg-[#82d616] rounded-full shadow-[0_0_10px_#82d616]" />
-                  )}
-                </button>
-
-                {/* BOLETO 🚀 */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData({ ...formData, paymentMethod: "BOLETO" })
-                  }
-                  className={cn(
-                    "w-full p-4 rounded-xl border flex items-center justify-between transition-all",
-                    formData.paymentMethod === "BOLETO"
-                      ? "border-[#82d616] bg-[#82d616]/10"
-                      : "border-white/10 hover:bg-white/5",
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <Barcode size={20} />
-                    <span className="font-bold text-sm">Boleto</span>
-                  </div>
-                  {formData.paymentMethod === "BOLETO" && (
-                    <div className="h-2 w-2 bg-[#82d616] rounded-full shadow-[0_0_10px_#82d616]" />
-                  )}
-                </button>
+                {["CREDIT_CARD", "PIX", "BOLETO"].map((method) => (
+                  <button
+                    key={method}
+                    type="button"
+                    onClick={() =>
+                      setFormData({ ...formData, paymentMethod: method })
+                    }
+                    className={cn(
+                      "w-full p-4 rounded-xl border flex items-center justify-between transition-all",
+                      formData.paymentMethod === method
+                        ? "border-[#82d616] bg-[#82d616]/10"
+                        : "border-white/10 hover:bg-white/5",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {method === "CREDIT_CARD" ? (
+                        <CreditCard size={20} />
+                      ) : method === "PIX" ? (
+                        <Wallet size={20} />
+                      ) : (
+                        <Barcode size={20} />
+                      )}
+                      <span className="font-bold text-sm">
+                        {method === "CREDIT_CARD"
+                          ? "Cartão"
+                          : method === "PIX"
+                            ? "PIX"
+                            : "Boleto"}
+                      </span>
+                    </div>
+                    {formData.paymentMethod === method && (
+                      <div className="h-2 w-2 bg-[#82d616] rounded-full shadow-[0_0_10px_#82d616]" />
+                    )}
+                  </button>
+                ))}
               </div>
 
               <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400">Total a pagar</span>
+                <div className="flex justify-between items-center text-sm font-medium">
+                  <span className="text-slate-400 font-bold uppercase text-[10px]">
+                    Total
+                  </span>
                   <span className="text-xl font-black text-[#82d616]">
                     R$ {formData.amount || "0,00"}
                   </span>
                 </div>
-
                 <Button
                   type="submit"
                   disabled={loading}
@@ -316,13 +337,6 @@ export default function NewPaymentPage() {
                   )}
                 </Button>
               </div>
-            </div>
-
-            <div className="bg-slate-50 p-6 border border-dashed border-slate-200 rounded-[0.625rem]">
-              <p className="text-[11px] text-slate-500 leading-relaxed text-center">
-                Ao gerar esta cobrança, o sistema Payvex roteará automaticamente
-                a transação para o gateway configurado na filial selecionada.
-              </p>
             </div>
           </div>
         </form>

@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service/prisma.service';
@@ -13,6 +14,7 @@ import { WebhooksController } from './webhooks.controller';
     }),
   ],
   controllers: [WebhooksController],
-  providers: [WebhookService, WebhookProcessor, PrismaService], // O Processor entra como provider
+  providers: [WebhookService, WebhookProcessor, PrismaService],
+  exports: [WebhookService], // O Processor entra como provider
 })
 export class WebhookModule {}
