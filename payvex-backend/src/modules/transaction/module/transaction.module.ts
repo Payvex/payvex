@@ -1,6 +1,7 @@
 /* eslint-disable prettier/prettier */
 
 import { Module } from '@nestjs/common';
+import { ApiKeyAuthGuard } from 'src/auth/guards/api-key-auth.guard';
 import { AuthModule } from 'src/auth/modules/auth.module';
 import { GatewayFactory } from '../gateways/gateway.factory';
 
@@ -21,6 +22,7 @@ import { WebhookModule } from '../webhooks/webhooks.module';
   providers: [
     TransactionsService,
     PrismaService,
+    ApiKeyAuthGuard,
     GatewayFactory,
     TransactionsFindAllService,
   ],

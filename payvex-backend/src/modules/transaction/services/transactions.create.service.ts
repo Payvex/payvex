@@ -76,6 +76,11 @@ export class TransactionsService {
       // 4. Execução do pagamento
       const gatewayResponse = await adapter.createPayment(dto, credentials);
 
+      const metadata = {
+        ...(dto.metadata || {}),
+        gatewayResponse: gatewayResponse.rawResponse,
+      };
+
       // 5. Persistência no banco de dados
       return await this.prisma.transaction.create({
         data: {
@@ -88,7 +93,7 @@ export class TransactionsService {
           externalId: gatewayResponse.externalId,
           paymentUrl: gatewayResponse.paymentUrl,
           pixQrCode: gatewayResponse.pixQrCode,
-          metadata: gatewayResponse.rawResponse as any,
+          metadata: metadata as any,
           status: 'PENDING',
         },
       });

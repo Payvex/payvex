@@ -27,6 +27,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import type { ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 interface DashboardStats {
   totalSales: number;
@@ -345,7 +346,10 @@ export default function DashboardPage() {
                         fontSize: "12px",
                         fontWeight: "bold",
                       }}
-                      formatter={(val: number) => [formatCurrency(val), ""]}
+                      formatter={(val: ValueType | undefined) => [
+                        formatCurrency(typeof val === "number" ? val : 0),
+                        "",
+                      ]}
                     />
                     <Area
                       type="monotone"

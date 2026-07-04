@@ -10,6 +10,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ApiKeyAuthGuard } from 'src/auth/guards/api-key-auth.guard';
 import { CreateTransactionDto } from '../dtos/create-transaction.dto';
 import { TransactionsService } from '../services/transactions.create.service';
 
@@ -38,6 +39,17 @@ export class TransactionsCreateController {
     const { companyId } = req.user;
 
     // 4. Passamos o DTO e o companyId para o service validar a posse da filial
+    return this.transactionsService.create(dto, companyId);
+  }
+
+  @UseGuards(ApiKeyAuthGuard)
+  @Post('/plugin/create')
+  @HttpCode(HttpStatus.CREATED)
+  async createTransactionByPlugin(
+    @Body() dto: CreateTransactionDto,
+    @Request() req: any,
+  ) {
+    const { companyId } = req.user;
     return this.transactionsService.create(dto, companyId);
   }
 }

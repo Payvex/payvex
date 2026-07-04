@@ -3,6 +3,7 @@
 
 import { CreateApiKeyModal } from "@/components/modals/create-api-key-modal";
 import { DeleteApiKeyModal } from "@/components/modals/delete-api-key-modal";
+import { ManageWebhookModal } from "@/components/modals/manage-webhook-modal";
 import { PageTransition } from "@/components/page-transition";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,15 +21,17 @@ import {
   Puzzle,
   ShieldCheck,
   Trash2,
+  Unplug,
   Webhook,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
 const plugins = [
   {
     name: "WooCommerce",
-    version: "1.0.2",
+    version: "0.1.0",
     icon: "https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/woocommerce.svg",
     status: "Estável",
   },
@@ -53,9 +56,15 @@ export default function DevelopersPage() {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isWebhookModalOpen, setIsWebhookModalOpen] = useState(false);
   const [keyToDelete, setKeyToDelete] = useState<{
     id: string;
     name: string;
+  } | null>(null);
+  const [keyToWebhook, setKeyToWebhook] = useState<{
+    id: string;
+    name: string;
+    webhookUrl?: string | null;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -163,6 +172,7 @@ export default function DevelopersPage() {
                           <th className="px-6 py-4">Nome da Aplicação</th>
                           <th className="px-6 py-4">Unidade / Filial</th>
                           <th className="px-6 py-4">Token (Key)</th>
+                          <th className="px-6 py-4">Webhook</th>
                           <th className="px-6 py-4 text-right">Ações</th>
                         </tr>
                       </thead>
@@ -208,25 +218,72 @@ export default function DevelopersPage() {
                                 </button>
                               </div>
                             </td>
+                            <td className="px-6 py-4">
+                              <div className="space-y-2">
+                                <span
+                                  className={cn(
+                                    "inline-flex rounded-full px-2 py-1 text-[9px] font-black uppercase",
+                                    key.webhookUrl
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "bg-amber-100 text-amber-700",
+                                  )}
+                                >
+                                  {key.webhookUrl
+                                    ? "Webhook configurado"
+                                    : "Webhook pendente"}
+                                </span>
+                                <p className="max-w-[220px] truncate text-[10px] text-slate-400">
+                                  {key.webhookUrl ||
+                                    "O plugin pode registrar automaticamente ou você pode cadastrar manualmente."}
+                                </p>
+                              </div>
+                            </td>
                             <td className="px-6 py-4 text-right">
-                              <button
-                                disabled={!key.isActive}
-                                onClick={() => {
-                                  setKeyToDelete({
-                                    id: key.id,
-                                    name: key.name,
-                                  });
-                                  setIsDeleteModalOpen(true);
-                                }}
-                                className={cn(
-                                  "p-2 transition-all",
-                                  key.isActive
-                                    ? "text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 cursor-pointer"
-                                    : "text-slate-200 opacity-50 cursor-not-allowed",
-                                )}
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  disabled={!key.isActive}
+                                  onClick={() => {
+                                    setKeyToWebhook({
+                                      id: key.id,
+                                      name: key.name,
+                                      webhookUrl: key.webhookUrl,
+                                    });
+                                    setIsWebhookModalOpen(true);
+                                  }}
+                                  className={cn(
+                                    "p-2 transition-all",
+                                    key.isActive
+                                      ? "text-slate-300 hover:text-[#82d616] opacity-0 group-hover:opacity-100 cursor-pointer"
+                                      : "text-slate-200 opacity-50 cursor-not-allowed",
+                                  )}
+                                  title="Configurar webhook"
+                                >
+                                  {key.webhookUrl ? (
+                                    <Unplug size={16} />
+                                  ) : (
+                                    <Webhook size={16} />
+                                  )}
+                                </button>
+                                <button
+                                  disabled={!key.isActive}
+                                  onClick={() => {
+                                    setKeyToDelete({
+                                      id: key.id,
+                                      name: key.name,
+                                    });
+                                    setIsDeleteModalOpen(true);
+                                  }}
+                                  className={cn(
+                                    "p-2 transition-all",
+                                    key.isActive
+                                      ? "text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                      : "text-slate-200 opacity-50 cursor-not-allowed",
+                                  )}
+                                  title="Revogar chave"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -249,12 +306,15 @@ export default function DevelopersPage() {
                 API Documentation
               </h3>
               <p className="text-slate-400 text-sm mb-8 max-w-sm leading-relaxed">
-                Integre nosso checkout transparente em minutos.
+                Contrato técnico do plugin, headers, payloads, webhooks e fluxo
+                WooCommerce em uma única central.
               </p>
               <div className="flex gap-4">
-                <Button className="bg-[#82d616] text-[#3a416f] font-black rounded-xl gap-2 text-[10px] uppercase h-12 px-8 hover:bg-white transition-all shadow-lg">
-                  Ver Documentação <ExternalLink size={14} />
-                </Button>
+                <Link href="/docs">
+                  <Button className="bg-[#82d616] text-[#3a416f] font-black rounded-xl gap-2 text-[10px] uppercase h-12 px-8 hover:bg-white transition-all shadow-lg">
+                    Ver Documentação <ExternalLink size={14} />
+                  </Button>
+                </Link>
               </div>
             </section>
           </div>
@@ -288,8 +348,12 @@ export default function DevelopersPage() {
                       </div>
                     </div>
                     <button
-                      disabled={plugin.status === "Em Breve"}
                       className="h-8 w-8 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center hover:bg-[#82d616] hover:text-[#3a416f] disabled:opacity-20 transition-all border border-slate-100"
+                      onClick={() => {
+                        if (plugin.status === "Em Breve") return;
+                        window.location.href = "/docs";
+                      }}
+                      disabled={plugin.status === "Em Breve"}
                     >
                       <Download size={14} />
                     </button>
@@ -333,6 +397,12 @@ export default function DevelopersPage() {
           onConfirm={handleConfirmRevoke}
           loading={isDeleting}
           keyName={keyToDelete?.name || ""}
+        />
+        <ManageWebhookModal
+          isOpen={isWebhookModalOpen}
+          onClose={() => setIsWebhookModalOpen(false)}
+          onSuccess={loadData}
+          apiKey={keyToWebhook}
         />
       </div>
     </PageTransition>

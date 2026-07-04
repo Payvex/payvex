@@ -2,12 +2,14 @@
 
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
+import { ApiKeyAuthGuard } from 'src/auth/guards/api-key-auth.guard';
 import { AuthModule } from 'src/auth/modules/auth.module';
 
 // Seus controllers
 import { findAllCompanyController } from '../../company/controllers/findAllCompany.controller';
 import { FindCompanyByIdController } from '../../company/controllers/findCompanyById.controller';
 import { ApiKeyController } from '../controllers/apiKey.controller';
+import { PluginApiKeyController } from '../controllers/pluginApiKey.controller';
 import { CreateIdentityController } from '../controllers/createIdentity.controller';
 import { FindAllIdentityController } from '../controllers/findAllIdentity.service';
 import { FindIdentityByIdController } from '../controllers/findIdentityById.controller';
@@ -24,7 +26,7 @@ import { FindIdentityByIdService } from '../services/findIdentityById.service';
 import { IdentityCreateService } from '../services/identity.create.service';
 import { identityLoginService } from '../services/identity.login.service';
 import { singupCreateService } from '../services/signup.create.service';
-import { WebhookService } from '../services/webhookApiKey.service';
+import { WebhookService as ApiKeyWebhookService } from '../services/webhookApiKey.service';
 
 @Module({
   imports: [AuthModule, HttpModule],
@@ -38,6 +40,7 @@ import { WebhookService } from '../services/webhookApiKey.service';
     FindCompanyByIdController,
     CreateIdentityController,
     ApiKeyController,
+    PluginApiKeyController,
   ],
   providers: [
     singupCreateService,
@@ -49,7 +52,9 @@ import { WebhookService } from '../services/webhookApiKey.service';
     FindCompanyByIdService,
     IdentityCreateService,
     ApiKeyService,
-    WebhookService,
+    ApiKeyWebhookService,
+    ApiKeyAuthGuard,
   ],
+  exports: [ApiKeyWebhookService, ApiKeyService],
 })
 export class IdentityModule {}

@@ -1,6 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { PaymentMethod } from '@prisma/client';
 import {
+    IsObject,
     IsEnum,
     IsNotEmpty,
     IsNumber,
@@ -33,4 +34,8 @@ export class CreateTransactionDto {
   @IsString()
   @IsOptional()
   customerEmail?: string;
+
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, unknown>;
 }

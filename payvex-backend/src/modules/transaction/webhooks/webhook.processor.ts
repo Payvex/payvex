@@ -6,6 +6,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { TransactionStatus } from '@prisma/client';
 import { Job } from 'bullmq';
+import { WebhookService as ApiKeyWebhookService } from 'src/modules/identity/services/webhookApiKey.service';
 import { PrismaService } from 'src/prisma.service/prisma.service';
 import { decryptWithKey } from 'src/utils/security.util';
 import Stripe from 'stripe';
@@ -16,7 +17,10 @@ export class WebhookProcessor extends WorkerHost {
   private readonly logger = new Logger('StripeProcessor');
   private readonly MASTER_KEY = process.env.ENCRYPTION_KEY;
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private readonly apiKeyWebhookService: ApiKeyWebhookService,
+  ) {
     super();
   }
 
@@ -174,6 +178,15 @@ export class WebhookProcessor extends WorkerHost {
       });
 
       if (result.count > 0) {
+        const transaction = await this.prisma.transaction.findFirst({
+          where: { externalId },
+          select: { id: true },
+        });
+
+        if (transaction) {
+          await this.apiKeyWebhookService.sendWebhook(transaction.id);
+        }
+
         this.logger.log(
           `💾 Transação ${externalId} atualizada para ${status}.`,
         );

@@ -1,6 +1,8 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+ 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import {
@@ -10,6 +12,7 @@ import {
   ForbiddenException,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   Res, // 1. Adicione o decorador Res aqui
@@ -18,6 +21,7 @@ import {
 import type { Response } from 'express'; // 2. IMPORTANTE: Importe o Response do express
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateApiKeyDto } from '../dtos/create-api-key.dto';
+import { UpdateApiKeyWebhookDto } from '../dtos/update-api-key-webhook.dto';
 import { ApiKeyService } from '../services/apiKey.service';
 
 @Controller('identity')
@@ -71,5 +75,31 @@ export class ApiKeyController {
     }
     const result = await this.apiKeyService.revoke(id, req.user.companyId);
     return result;
+  }
+
+  @Patch('keys/:id/webhook')
+  async updateWebhook(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateApiKeyWebhookDto,
+  ) {
+    if (req.user.role !== 'ADMIN') {
+      throw new ForbiddenException('Ação não permitida.');
+    }
+
+    return await this.apiKeyService.updateWebhook(
+      id,
+      req.user.companyId,
+      dto.webhookUrl,
+    );
+  }
+
+  @Post('keys/:id/webhook/rotate-secret')
+  async rotateWebhookSecret(@Req() req: any, @Param('id') id: string) {
+    if (req.user.role !== 'ADMIN') {
+      throw new ForbiddenException('Ação não permitida.');
+    }
+
+    return await this.apiKeyService.rotateWebhookSecret(id, req.user.companyId);
   }
 }

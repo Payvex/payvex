@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@plugin "tailwindcss-animate";
+@import "../node_modules/tailwindcss/index.css";
+@plugin "../node_modules/tailwindcss-animate/index.js";
 
 @custom-variant dark (&:is(.dark *));
 

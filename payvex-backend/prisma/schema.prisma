@@ -9,8 +9,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 
@@ -144,14 +144,15 @@ model Transaction {
 
 
 model ApiKey {
-  id        String   @id @default(cuid())
-  key       String   @unique // px_live_...
-  name      String   // Ex: "Loja Principal WordPress"
-  webhookUrl String?
-  filialId  String
-  filial    Filial   @relation(fields: [filialId], references: [id])
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  key           String   @unique // px_live_...
+  name          String   // Ex: "Loja Principal WordPress"
+  webhookUrl    String?
+  webhookSecret String   // whsec_...
+  filialId      String
+  filial        Filial   @relation(fields: [filialId], references: [id])
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
 }
 
 // Enum para os papéis de usuário
