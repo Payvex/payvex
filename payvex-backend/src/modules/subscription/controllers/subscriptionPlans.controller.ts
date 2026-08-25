@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Controller, Get } from '@nestjs/common';
 import { PAYVEX_PLANS } from '../interfaces/subscriptions.interface';
 

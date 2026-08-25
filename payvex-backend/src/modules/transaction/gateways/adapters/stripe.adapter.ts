@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable prettier/prettier */
+
 import Stripe from 'stripe';
 import { PaymentGateway, PaymentResponse } from '../payment-gateway.interface';
 
@@ -52,6 +52,11 @@ export class StripeAdapter implements PaymentGateway {
 
         metadata: {
           filialId: data.filialId,
+        },
+        payment_intent_data: {
+          metadata: {
+            filialId: data.filialId,
+          },
         },
       });
 

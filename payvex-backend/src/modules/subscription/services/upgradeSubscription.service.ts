@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service/prisma.service';
 import { PAYVEX_PLANS } from '../interfaces/subscriptions.interface';

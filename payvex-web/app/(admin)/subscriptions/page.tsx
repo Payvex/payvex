@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -68,12 +69,14 @@ export default function SubscriptionPage() {
       if (paymentUrl) {
         window.location.href = paymentUrl;
       } else {
-        alert(
+        toast.error(
           "O Asaas criou a assinatura, mas não retornou um link de fatura.",
         );
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || "Erro ao processar pagamento.");
+      toast.error(
+        err.response?.data?.message || "Erro ao processar pagamento.",
+      );
     } finally {
       setUpgrading(null);
     }
@@ -83,7 +86,7 @@ export default function SubscriptionPage() {
   if (loading)
     return (
       <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#82d616]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
 
@@ -92,11 +95,11 @@ export default function SubscriptionPage() {
     return (
       <PageTransition>
         <div className="max-w-2xl mx-auto flex flex-col items-center justify-center space-y-6 py-24 text-center">
-          <div className="h-24 w-24 bg-[#3a416f]/10 rounded-full flex items-center justify-center text-[#3a416f] border border-[#3a416f]/20 shadow-2xl shadow-[#3a416f]/10">
+          <div className="h-24 w-24 bg-surface/10 rounded-full flex items-center justify-center text-surface border border-surface/20 shadow-2xl shadow-surface/10">
             <ShieldAlert size={48} />
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-black text-[#3a416f]">
+            <h1 className="text-3xl font-black text-surface">
               Gestão de Assinatura
             </h1>
             <p className="text-slate-500 max-w-md mx-auto">
@@ -129,7 +132,7 @@ export default function SubscriptionPage() {
     <div className="p-6 md:p-10 space-y-8 max-w-[1400px] mx-auto animate-in fade-in duration-500">
       {/* HEADER */}
       <div>
-        <h1 className="text-2xl font-bold text-[#3a416f]">
+        <h1 className="text-2xl font-bold text-surface">
           Assinatura e Planos
         </h1>
         <p className="text-slate-500">
@@ -141,10 +144,10 @@ export default function SubscriptionPage() {
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 relative overflow-hidden">
         <div className="flex justify-between items-start mb-8">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#82d616] mb-1 block">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-1 block">
               Plano Ativo
             </span>
-            <h2 className="text-3xl font-black text-[#3a416f]">
+            <h2 className="text-3xl font-black text-surface">
               {data?.planName?.toUpperCase()}
             </h2>
           </div>
@@ -163,7 +166,7 @@ export default function SubscriptionPage() {
             </div>
             <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-1000 ${usagePercent > 90 ? "bg-red-500" : "bg-[#3a416f]"}`}
+                className={`h-full transition-all duration-1000 ${usagePercent > 90 ? "bg-red-500" : "bg-surface"}`}
                 style={{ width: `${usagePercent}%` }}
               />
             </div>
@@ -177,7 +180,7 @@ export default function SubscriptionPage() {
               <p className="text-[11px] text-slate-500 font-bold uppercase leading-tight">
                 Limites de Gateways
               </p>
-              <p className="font-bold text-[#3a416f]">
+              <p className="font-bold text-surface">
                 {data?.gatewaysLimit} Conexões
               </p>
             </div>
@@ -191,7 +194,7 @@ export default function SubscriptionPage() {
               <p className="text-[11px] text-slate-500 font-bold uppercase leading-tight">
                 Apps E-commerce
               </p>
-              <p className="font-bold text-[#3a416f]">
+              <p className="font-bold text-surface">
                 Até {data?.multiAppLimit}{" "}
                 {data?.multiAppLimit > 1 ? "Lojas" : "Loja"}
               </p>
@@ -212,7 +215,7 @@ export default function SubscriptionPage() {
               <p className="text-[11px] text-slate-500 font-bold uppercase leading-tight">
                 Analista de IA
               </p>
-              <p className="font-bold text-[#3a416f]">
+              <p className="font-bold text-surface">
                 {data?.hasAiAnalyst ? "Liberado" : "Bloqueado"}
               </p>
             </div>
@@ -230,11 +233,11 @@ export default function SubscriptionPage() {
           return (
             <div
               key={plan.key}
-              className={`bg-white rounded-[32px] p-8 border ${plan.key === "EXPERT_AI" ? "border-[#82d616] ring-4 ring-[#82d616]/5" : "border-slate-100"} flex flex-col`}
+              className={`bg-white rounded-[32px] p-8 border ${plan.key === "EXPERT_AI" ? "border-primary ring-4 ring-[#82d616]/5" : "border-slate-100"} flex flex-col`}
             >
-              <h3 className="text-lg font-bold text-[#3a416f]">{plan.name}</h3>
+              <h3 className="text-lg font-bold text-surface">{plan.name}</h3>
               <div className="my-6 flex items-baseline gap-1">
-                <span className="text-4xl font-black text-[#3a416f]">
+                <span className="text-4xl font-black text-surface">
                   R$ {plan.price.toLocaleString("pt-BR")}
                 </span>
                 <span className="text-slate-400 text-sm">/mês</span>
@@ -274,7 +277,7 @@ export default function SubscriptionPage() {
                 className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
                   isCurrentPlan
                     ? "bg-slate-100 text-slate-400 cursor-default"
-                    : "bg-[#82d616] hover:bg-[#71bd13] text-[#3a416f] shadow-lg shadow-[#82d616]/20"
+                    : "bg-primary hover:bg-primary-dark text-surface shadow-lg shadow-primary/20"
                 } ${upgrading ? "opacity-70 cursor-not-allowed" : ""}`}
               >
                 {isCurrentPlan ? (

@@ -28,7 +28,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // 1. ESTADO INICIAL COMPLETO
   const [formData, setFormData] = useState({
     userName: "",
     userEmail: "",
@@ -43,7 +42,6 @@ export default function RegisterPage() {
     companyCnpj: "",
   });
 
-  // 2. MÁSCARA DE CNPJ
   const maskCNPJ = (value: string) => {
     return value
       .replace(/\D/g, "")
@@ -54,7 +52,6 @@ export default function RegisterPage() {
       .substring(0, 18);
   };
 
-  // 3. FUNÇÃO DE BUSCA DE CEP AUTOMÁTICA
   const handleFetchAddress = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, "");
     if (cleanCep.length !== 8) return;
@@ -85,13 +82,21 @@ export default function RegisterPage() {
     }
   };
 
-  // 4. ENVIO DO FORMULÁRIO (PAYLOAD ADAPTADO)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     const payload = {
-      ...formData,
+      userName: formData.userName,
+      userEmail: formData.userEmail,
+      userPassword: formData.userPassword,
+      companyName: formData.companyName,
+      postalCode: formData.postalCode,
+      address: formData.address,
+      neighborhood: formData.neighborhood,
+      state: formData.state,
+      city: formData.city,
+      phone: formData.phone,
       filiais: [
         {
           name: "Matriz",
@@ -114,121 +119,109 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen bg-white">
-      {/* --- LADO ESQUERDO: BRANDING COM EFEITOS HOVER --- */}
-      <div className="hidden lg:flex w-1/2 bg-[#3A416F] p-12 flex-col justify-between text-white relative overflow-hidden">
-        <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-[#82d616] rounded-full blur-[120px] opacity-20"></div>
+      <div className="hidden lg:flex w-1/2 bg-[#0B1020] p-12 flex-col justify-between relative overflow-hidden">
+        <div className="relative z-10 space-y-6">
+          <Image
+            src="/Payvex_logo_brand_white.png"
+            alt="Payvex Logo"
+            width={260}
+            height={160}
+            priority
+            className="object-contain"
+          />
 
-        <div className="relative z-10">
-          <div className="mb-2">
-            <Image
-              src="/Payvex-Logo.png"
-              alt="Payvex Logo"
-              width={300}
-              height={180}
-              priority
-              className="object-contain"
-            />
-          </div>
-
-          <div className="mt-4 space-y-4">
-            <h2 className="text-5xl font-extrabold leading-tight">
-              Assuma o controle <br />
-              <span className="text-[#82d616]">total do seu caixa.</span>
-            </h2>
-            <p className="text-gray-300 text-lg max-w-md">
-              Centralize Stripe, Mercado Pago e outros gateways em um único
-              dashboard inteligente.
-            </p>
-          </div>
+          <h2 className="text-4xl font-extrabold leading-tight text-white">
+            Assuma o controle.
+          </h2>
+          <p className="text-slate-400 text-base max-w-sm">
+            Centralize Stripe, Mercado Pago e outros gateways em um único
+            dashboard inteligente.
+          </p>
         </div>
 
         <div className="relative z-10 space-y-4">
-          {/* Card 1: Setup Rápido com Efeito Levitar */}
           <div className="flex items-center gap-3 text-sm text-gray-300 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:text-white group cursor-default p-2 -ml-2 rounded-xl hover:bg-white/5">
-            <div className="bg-[#82d616]/10 p-2 rounded-lg group-hover:bg-[#82d616]/20 transition-colors">
-              <CheckCircle2 className="text-[#82d616] w-5 h-5" />
+            <div className="bg-primary/10 p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <CheckCircle2 className="text-primary w-5 h-5" />
             </div>
-            <span className="font-medium">
-              Setup rápido em menos de 2 minutos.
-            </span>
-          </div>
-
-          {/* Card 2: Segurança com Efeito Levitar */}
-          <div className="flex items-center gap-3 text-sm text-gray-300 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:text-white group cursor-default p-2 -ml-2 rounded-xl hover:bg-white/5">
-            <div className="bg-[#82d616]/10 p-2 rounded-lg group-hover:bg-[#82d616]/20 transition-colors">
-              <CheckCircle2 className="text-[#82d616] w-5 h-5" />
-            </div>
-            <span className="font-medium">
-              Segurança de nível bancário com criptografia de ponta.
-            </span>
+            <span className="font-medium">Setup rápido e intuitivo.</span>
           </div>
         </div>
       </div>
 
-      {/* --- LADO DIREITO: FORMULÁRIO INTELIGENTE --- */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 overflow-y-auto">
-        <div className="w-full max-w-md space-y-6 my-8">
-          <div className="space-y-1 text-center lg:text-left">
-            <h3 className="text-3xl font-bold text-[#3A416F]">Comece agora</h3>
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12">
+        <div className="w-full max-w-md space-y-8">
+          <div className="space-y-2 text-center lg:text-left">
+            <h3 className="text-4xl font-bold text-[#3A416F]">Comece agora</h3>
             <p className="text-gray-500">
               Crie sua conta administrativa no Payvex.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* SEÇÃO: ACESSO */}
-            <div className="space-y-3">
-              <Label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
-                Acesso Master
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Nome Completo"
-                  className="pl-10 h-11"
-                  required
-                  onChange={(e) =>
-                    setFormData({ ...formData, userName: e.target.value })
-                  }
-                />
-              </div>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  type="email"
-                  placeholder="E-mail Corporativo"
-                  className="pl-10 h-11"
-                  required
-                  onChange={(e) =>
-                    setFormData({ ...formData, userEmail: e.target.value })
-                  }
-                />
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Senha de Acesso"
-                  className="pl-10 h-11"
-                  required
-                  onChange={(e) =>
-                    setFormData({ ...formData, userPassword: e.target.value })
-                  }
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400"
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label
+                  htmlFor="userName"
+                  className="text-xs font-bold uppercase text-gray-400 tracking-wider"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                  Acesso Master
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="userName"
+                    type="text"
+                    placeholder="Nome Completo"
+                    className="pl-10 h-11 text-[#3A416F]"
+                    required
+                    onChange={(e) =>
+                      setFormData({ ...formData, userName: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="userEmail"
+                    type="email"
+                    placeholder="E-mail Corporativo"
+                    className="pl-10 h-11 text-[#3A416F]"
+                    required
+                    onChange={(e) =>
+                      setFormData({ ...formData, userEmail: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="userPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Senha de Acesso"
+                    className="pl-10 h-11 text-[#3A416F]"
+                    required
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        userPassword: e.target.value,
+                      })
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-[#3A416F]"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="h-px bg-gray-100 w-full my-4"></div>
 
-            {/* SEÇÃO: EMPRESA E ENDEREÇO */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Label className="text-xs font-bold uppercase text-gray-400 tracking-wider">
                 Dados da Empresa
               </Label>
@@ -236,7 +229,7 @@ export default function RegisterPage() {
                 <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Nome da Empresa"
-                  className="pl-10 h-11"
+                  className="pl-10 h-11 text-[#3A416F]"
                   required
                   onChange={(e) =>
                     setFormData({ ...formData, companyName: e.target.value })
@@ -249,7 +242,7 @@ export default function RegisterPage() {
                   <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="CNPJ Matriz"
-                    className="pl-10 h-11"
+                    className="pl-10 h-11 text-[#3A416F]"
                     required
                     value={formData.companyCnpj}
                     onChange={(e) =>
@@ -264,7 +257,7 @@ export default function RegisterPage() {
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Telefone"
-                    className="pl-10 h-11"
+                    className="pl-10 h-11 text-[#3A416F]"
                     required
                     onChange={(e) =>
                       setFormData({ ...formData, phone: e.target.value })
@@ -273,12 +266,11 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* GRID DE ENDEREÇO COM AUTO-CEP */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-1">
                   <Input
                     placeholder="CEP"
-                    className="h-11 focus:scale-[1.02] transition-transform"
+                    className="h-11 text-[#3A416F]"
                     required
                     maxLength={9}
                     value={formData.postalCode}
@@ -294,7 +286,7 @@ export default function RegisterPage() {
                 <div className="col-span-2">
                   <Input
                     placeholder="Logradouro"
-                    className="h-11"
+                    className="h-11 text-[#3A416F]"
                     required
                     value={formData.address}
                     onChange={(e) =>
@@ -307,7 +299,7 @@ export default function RegisterPage() {
               <div className="grid grid-cols-3 gap-2">
                 <Input
                   placeholder="Bairro"
-                  className="h-11"
+                  className="h-11 text-[#3A416F]"
                   required
                   value={formData.neighborhood}
                   onChange={(e) =>
@@ -316,7 +308,7 @@ export default function RegisterPage() {
                 />
                 <Input
                   placeholder="Cidade"
-                  className="h-11"
+                  className="h-11 text-[#3A416F]"
                   required
                   value={formData.city}
                   onChange={(e) =>
@@ -325,7 +317,7 @@ export default function RegisterPage() {
                 />
                 <Input
                   placeholder="UF"
-                  className="h-11"
+                  className="h-11 text-[#3A416F]"
                   maxLength={2}
                   required
                   value={formData.state}
@@ -337,29 +329,42 @@ export default function RegisterPage() {
             </div>
 
             <Button
-              className="w-full bg-[#82d616] hover:bg-[#71ba13] text-[#3A416F] font-bold h-12 text-md transition-all group mt-2"
+              className="w-full bg-primary hover:bg-[#71ba13] text-[#3A416F] font-bold h-12 text-md transition-all group rounded-xl"
               disabled={loading}
             >
               {loading ? (
-                "Processando..."
+                <span className="flex items-center gap-2 italic">
+                  Processando...
+                </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  Finalizar Cadastro{" "}
+                  Finalizar Cadastro
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </span>
               )}
             </Button>
 
-            <p className="text-center text-sm text-gray-500">
-              Já tem conta?{" "}
-              <button
-                type="button"
-                onClick={() => router.push("/login")}
-                className="text-[#3A416F] font-bold hover:underline"
-              >
-                Faça login
-              </button>
-            </p>
+            <div className="relative py-3">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-slate-100" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-2 text-slate-400">
+                  Já tem conta?
+                </span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-12 rounded-xl border-slate-200 text-[#3A416F] font-bold hover:bg-slate-50"
+              onClick={() => {
+                router.push("/login");
+              }}
+            >
+              Fazer login
+            </Button>
           </form>
         </div>
       </div>

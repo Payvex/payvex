@@ -39,7 +39,7 @@ export function AppLoader() {
                 ease: "easeInOut",
                 repeat: Infinity,
               }}
-              className="absolute w-24 h-24 bg-[#82d616]/40 rounded-full blur-2xl"
+              className="absolute w-24 h-24 bg-primary/40 rounded-full blur-2xl"
             />
 
             {/* 2. Ícone Principal Flutuante */}
@@ -52,7 +52,7 @@ export function AppLoader() {
               }}
               className="relative z-10 bg-white p-5 rounded-full shadow-2xl shadow-[#82d616]/30 border border-gray-50"
             >
-              <CheckCircle2 className="w-14 h-14 text-[#82d616]" />
+              <CheckCircle2 className="w-14 h-14 text-primary" />
             </motion.div>
 
             {/* 3. Bloco de Texto Artístico */}
@@ -63,7 +63,7 @@ export function AppLoader() {
                 transition={{ delay: 0.4, duration: 0.6 }}
                 className="text-[#3A416F] font-bold text-2xl tracking-tight"
               >
-                Payv<span className="text-[#82d616]">ex </span>
+                Payv<span className="text-primary">ex </span>
               </motion.h4>
 
               <motion.span
@@ -89,7 +89,7 @@ export function AppLoader() {
               transition={{ delay: 0.6 }}
             >
               <motion.div
-                className="h-full bg-[#82d616]"
+                className="h-full bg-primary"
                 initial={{ width: "0%" }}
                 animate={{ width: "100%" }}
                 transition={{

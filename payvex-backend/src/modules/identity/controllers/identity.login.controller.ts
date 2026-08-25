@@ -1,11 +1,11 @@
 import {
-    Body,
-    Controller,
-    HttpCode,
-    HttpStatus,
-    Post,
-    UsePipes,
-    ValidationPipe,
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { LoginDto } from '../dtos/identity.login.dto';
 import { identityLoginService } from '../services/identity.login.service';
@@ -17,9 +17,7 @@ export class identityLoginController {
   @Post('/login') // Rota POST /identity/login
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe())
-  async login(
-    @Body() dto: LoginDto,
-  ) {
+  async login(@Body() dto: LoginDto) {
     return this.loginService.login(dto);
   }
 }

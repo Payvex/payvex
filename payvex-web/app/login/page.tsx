@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
- 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -8,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLoader } from "@/context/loader-context";
 import { api } from "@/lib/api";
-
 import {
   ArrowRight,
   CheckCircle2,
@@ -40,34 +37,26 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 1. Chamada para o seu backend NestJS
       const response = await api.post("/identity/login", credentials);
-
-      // 2. Extração dos dados
       const { accessToken, user } = response.data;
 
-      // 🛡️ O PULO DO GATO: Mesclar o token dentro do objeto user
-      // Isso garante que o interceptor ache parsed.token
       const userWithToken = {
         ...user,
-        token: accessToken, // Adicionamos a chave 'token' aqui
+        token: accessToken,
       };
 
-      // 3. Persistência
       Cookies.set("@payvex:token", accessToken, { expires: 7 });
-
-      // Salvamos o token sozinho (opcional)
       localStorage.setItem("@payvex:token", accessToken);
-
-      // Salvamos o objeto completo (usuário + token) 🚀
       localStorage.setItem("@payvex:user", JSON.stringify(userWithToken));
 
-      // 4. Feedback e Redirecionamento
       toast.success("Bem-vindo de volta!", {});
       startLoading();
       router.push("/dashboard");
-    } catch (error: any) {
-      const msg = error.response?.data?.message || "E-mail ou senha inválidos.";
+    } catch (error) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "E-mail ou senha inválidos.";
+
       toast.error(msg);
       console.error("Login Error:", error);
     } finally {
@@ -77,50 +66,32 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen bg-white">
-      {/* TODO O RESTANTE DO SEU CÓDIGO (JSX/HTML) PERMANECE 100% IGUAL. 
-         MANTIVE TODA A IDENTIDADE VISUAL QUE VOCÊ CONSTRUIU.
-      */}
-      <div className="hidden lg:flex w-1/2 bg-[#3A416F] p-12 flex-col justify-between text-white relative overflow-hidden">
-        <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-[#82d616] rounded-full blur-[120px] opacity-20"></div>
-        <div className="relative z-10">
-          <div className="mb-2">
-            <Image
-              src="/Payvex-Logo.png"
-              alt="Payvex Logo"
-              width={300}
-              height={180}
-              priority
-              className="object-contain"
-            />
-          </div>
-          <div className="mt-8 space-y-4">
-            <h2 className="text-5xl font-extrabold leading-tight">
-              Bem-vindo de <br />
-              <span className="text-[#82d616]">volta ao cockpit.</span>
-            </h2>
-            <p className="text-gray-300 text-lg max-w-md">
-              Sua infraestrutura de pagamentos está pronta. Acesse e otimize
-              suas taxas.
-            </p>
-          </div>
+      <div className="hidden lg:flex w-1/2 bg-[#0B1020] p-12 flex-col justify-between relative overflow-hidden">
+        <div className="relative z-10 space-y-6">
+          <Image
+            src="/Payvex_logo_brand_white.png"
+            alt="Payvex Logo"
+            width={260}
+            height={160}
+            priority
+            className="object-contain"
+          />
+
+          <h2 className="text-4xl font-extrabold leading-tight text-white">
+            Bem-vindo de volta.
+          </h2>
+          <p className="text-slate-400 text-base max-w-sm">
+            Acesse o Payvex e gerencie suas operações financeiras em um único
+            painel.
+          </p>
         </div>
 
         <div className="relative z-10 space-y-4">
           <div className="flex items-center gap-3 text-sm text-gray-300 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:text-white group cursor-default p-2 -ml-2 rounded-xl hover:bg-white/5">
-            <div className="bg-[#82d616]/10 p-2 rounded-lg group-hover:bg-[#82d616]/20 transition-colors">
-              <CheckCircle2 className="text-[#82d616] w-5 h-5" />
+            <div className="bg-primary/10 p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <CheckCircle2 className="text-primary w-5 h-5" />
             </div>
-            <span className="font-medium">
-              Dashboard intuitivo com setup em minutos.
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-sm text-gray-300 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:text-white group cursor-default p-2 -ml-2 rounded-xl hover:bg-white/5">
-            <div className="bg-[#82d616]/10 p-2 rounded-lg group-hover:bg-[#82d616]/20 transition-colors">
-              <CheckCircle2 className="text-[#82d616] w-5 h-5" />
-            </div>
-            <span className="font-medium">
-              Transações seguras com criptografia avançada.
-            </span>
+            <span className="font-medium">Intuitivo e fácil de usar.</span>
           </div>
         </div>
       </div>
@@ -129,24 +100,25 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8">
           <div className="space-y-2 text-center lg:text-left">
             <h3 className="text-4xl font-bold text-[#3A416F]">Entrar</h3>
-            <p className="text-gray-500 text-lg">
-              Insira suas credenciais Payvex.
-            </p>
+            <p className="text-gray-500">Insira suas credenciais Payvex.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="email" className="text-[#3A416F] font-bold">
+                <Label
+                  htmlFor="email"
+                  className="text-xs font-bold uppercase text-gray-400 tracking-wider"
+                >
                   E-mail Profissional
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="exemplo@payvex.com.br"
-                    className="pl-10 h-12 focus-visible:ring-[#82d616] rounded-[0.625rem]"
+                    className="pl-10 h-11 text-[#3A416F]"
                     required
                     onChange={(e) =>
                       setCredentials({ ...credentials, email: e.target.value })
@@ -156,16 +128,19 @@ export default function LoginPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="password" className="text-[#3A416F] font-bold">
+                <Label
+                  htmlFor="password"
+                  className="text-xs font-bold uppercase text-gray-400 tracking-wider"
+                >
                   Senha
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="pl-10 pr-10 h-12 focus-visible:ring-[#82d616] rounded-[0.625rem]"
+                    className="pl-10 pr-10 h-11 text-[#3A416F]"
                     required
                     onChange={(e) =>
                       setCredentials({
@@ -177,7 +152,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3.5 text-gray-400 hover:text-[#3A416F]"
+                    className="absolute right-3 top-3 text-gray-400 hover:text-[#3A416F]"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -186,7 +161,7 @@ export default function LoginPage() {
             </div>
 
             <Button
-              className="w-full bg-[#3A416F] hover:bg-[#2a2f52] text-white font-bold h-12 text-md transition-all group rounded-[0.625rem] shadow-lg shadow-blue-900/10"
+              className="w-full bg-primary hover:bg-[#71ba13] text-[#3A416F] font-bold h-12 text-md transition-all group rounded-xl"
               disabled={loading}
             >
               {loading ? (
@@ -195,18 +170,18 @@ export default function LoginPage() {
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  Acessar Dashboard{" "}
+                  Acessar Dashboard
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </span>
               )}
             </Button>
 
-            <div className="relative py-4">
+            <div className="relative py-3">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-100" />
+                <span className="w-full border-t border-slate-100" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-400">
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-2 text-slate-400">
                   Novo por aqui?
                 </span>
               </div>
@@ -215,7 +190,7 @@ export default function LoginPage() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-12 border-2 border-gray-100 hover:bg-gray-50 text-[#3A416F] font-bold rounded-[0.625rem]"
+              className="w-full h-12 rounded-xl border-slate-200 text-[#3A416F] font-bold hover:bg-slate-50"
               onClick={() => {
                 startLoading();
                 router.push("/register");

@@ -29,7 +29,7 @@ export function DeleteFilialModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#3a416f]/60 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface/60 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border border-slate-200">
         <div className="p-8 text-center">
           {/* Ícone de Alerta Payvex Style */}
@@ -37,12 +37,12 @@ export function DeleteFilialModal({
             <AlertTriangle className="h-10 w-10 text-red-500" />
           </div>
 
-          <h3 className="text-2xl font-black text-[#3a416f] mb-2 tracking-tight">
+          <h3 className="text-2xl font-black text-surface mb-2 tracking-tight">
             Desativar Unidade?
           </h3>
           <p className="text-slate-500 text-sm mb-8 leading-relaxed">
             Você está prestes a desativar a filial{" "}
-            <strong className="text-[#3a416f] font-bold">{filialName}</strong>.
+            <strong className="text-surface font-bold">{filialName}</strong>.
             Os dados históricos serão mantidos, mas ela não poderá mais
             processar vendas.
           </p>
@@ -58,7 +58,7 @@ export function DeleteFilialModal({
             <button
               disabled={loading}
               onClick={handleConfirm}
-              className="flex-1 px-4 py-3 rounded-xl bg-[#82d616] text-[#3a416f] font-black hover:bg-[#74c014] transition-all shadow-lg shadow-[#82d616]/20 flex items-center justify-center gap-2 disabled:opacity-70"
+              className="flex-1 px-4 py-3 rounded-xl bg-primary text-surface font-black hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

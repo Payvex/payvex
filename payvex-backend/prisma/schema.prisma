@@ -1,179 +1,198 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
-  // Caminho padrão que funciona com a importação do '@prisma/client' no NestJS
-  output   = "../node_modules/.prisma/client" 
 }
 
 datasource db {
   provider = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  url      = env("DATABASE_URL")
 }
 
-
-// Modelo da Empresa (Tenant)
-// É o seu cliente pagante.
 model Company {
-  id    String @id @default(cuid())
-  name  String // Nome Fantasia
-  postalCode String
-  address String
+  id           String        @id @default(cuid())
+  name         String
+  postalCode   String
+  address      String
   neighborhood String
-  State String
-  City String
-  phone String
-
-  // Relacionamentos
-  filiais       Filial[]
-  users         User[]
-  subscription  Subscription?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// Modelo da Filial
-model Filial {
-  id                     String        @id @default(cuid())
-  name                   String
-  cnpj                   String        @unique
-  isActive               Boolean       @default(true) // Soft Delete
-
-  // Endereço da Unidade
-  cep                    String?
-  logradouro             String?
-  bairro                 String?
-  cidade                 String?
-  uf                     String?       @db.VarChar(2) // Ex: BA, SP, RJ
-
-  // Configurações de Integração (BYOK)
-  stripeSecretKey        String?   
-  stripePublicKey        String?   
-  mercadoPagoAccessToken String?
-  stripeWebhookSecret    String?
-  
-  // Relacionamentos
-  companyId    String
-  company      Company       @relation(fields: [companyId], references: [id])
-  transactions Transaction[] 
-  apiKeys   ApiKey[]
+  State        String
+  City         String
+  phone        String
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  filiais      Filial[]
+  subscription Subscription?
+  users        User[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(USER)
+  companyId    String
+  filialId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  filial       Filial?  @relation(fields: [filialId], references: [id], onDelete: SetNull)
+}
+
+model Filial {
+  id                            String        @id @default(cuid())
+  name                          String
+  cnpj                          String        @unique
+  stripePublicKey               String?
+  stripeSecretKey               String?
+  stripeWebhookSecret           String?
+  mercadoPagoAccessToken        String?
+  mercadoPagoWebhookSecret      String?
+  pagarMeAccessToken            String?
+  pagarMePublicKey              String?
+  pagarBankPrivateKey           String?
+  pagarBankSandbox              Boolean       @default(false)
+  asaasApiKey                   String?
+  asaasWebhookToken             String?
+  asaasSandbox                  Boolean       @default(false)
+  cieloMerchantId               String?
+  cieloMerchantKey              String?
+  cieloWebhookHeaderKey         String?
+  cieloWebhookHeaderValue       String?
+  cieloSandbox                  Boolean?      @default(false)
+  stoneApiKey                   String?
+  stoneClientId                 String?
+  stoneSecret                   String?
+  stoneSandbox                  Boolean       @default(false)
+  nowPaymentsApiKey             String?
+  nowPaymentsIpnSecret          String?
+  coinbaseCommerceApiKey        String?
+  coinbaseCommerceWebhookSecret String?
+  bitPayToken                   String?
+  bitPaySandbox                 Boolean       @default(false)
+  picPayPublicKey               String?
+  picPayClientId                String?
+  picPayClientSecret            String?
+  picPaySellerToken             String?
+  pagSeguroEmail                String?
+  pagSeguroToken                String?
+  pagSeguroSalt                 String?
+  pagSeguroSandbox              Boolean?      @default(false)
+  preferredGateway              String?
+  companyId                     String
+  company                       Company       @relation(fields: [companyId], references: [id])
+  createdAt                     DateTime      @default(now())
+  updatedAt                     DateTime      @updatedAt
+  bairro                        String?
+  cep                           String?
+  cidade                        String?
+  isActive                      Boolean       @default(true)
+  logradouro                    String?
+  uf                            String?       @db.VarChar(2)
+  woocommerceUrl                String?
+  woocommerceConsumerKey        String?
+  woocommerceConsumerSecret     String?
+  nuvemShopUrl                  String?
+  nuvemShopAccessToken          String?
+  nuvemShopStoreId              String?
+  shopifyUrl                    String?
+  shopifyAccessToken            String?
+  shopifyStoreId                String?
+  shopifyApiVersion             String?       @default("2024-01")
+  mercadoPagoTestMode           Boolean       @default(false)
+  apiKeys                       ApiKey[]
+  transactions                  Transaction[]
+  users                         User[]
 
   @@index([companyId])
 }
 
-// Modelo do Colaborador
-// É o usuário que pertence a uma empresa.
-model User {
-  id            String  @id @default(cuid())
-  email         String  @unique
+model ApiKey {
+  id            String   @id @default(cuid())
   name          String
-  passwordHash  String
-  role          Role    @default(USER)
-
-  // Relacionamento com a Empresa
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  key           String   @unique
+  filialId      String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  webhookUrl    String?
+  webhookSecret String
+  filial        Filial   @relation(fields: [filialId], references: [id])
 }
 
 model Subscription {
   id                String    @id @default(cuid())
-  planName          String    @default("trial") // trial, standard, pro, expert_ai
+  planName          String    @default("trial")
   status            String    @default("ativo")
-  
-  // Limites de Quota Existentes
   usersLimit        Int       @default(3)
   gatewaysLimit     Int       @default(1)
   transactionsLimit Int       @default(100)
-  
-  // --- Novos campos para o Plano Expert (R$ 2.500) ---
-  hasAiAnalyst      Boolean   @default(false) // Libera o Agente de AI no Dash
-  multiAppLimit     Int       @default(1)     // Qtd de Apps (Shopify, Woo, etc) conectados
-  prioritySupport   Boolean   @default(false) // Flag para suporte prioritário
-  // --------------------------------------------------
-
   companyId         String    @unique
-  company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
   nextRenewalAt     DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+  hasAiAnalyst      Boolean   @default(false)
+  multiAppLimit     Int       @default(1)
+  prioritySupport   Boolean   @default(false)
+  company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model Transaction {
-  id            String      @id @default(cuid())
-  amount        Decimal     // Valor bruto (ex: 100.00)
-  netAmount     Decimal?    // Valor líquido após taxas (ex: 95.00)
-  fee           Decimal?    // Taxa retida pelo gateway
-  currency      String      @default("BRL")
-  installments  Int         @default(1) // Parcelas
-  status        TransactionStatus @default(PENDING)
-  paymentMethod PaymentMethod
-  
-  // Dados do Pagador (Salvando direto aqui para histórico imutável)
+  id               String            @id @default(cuid())
+  amount           Decimal
+  netAmount        Decimal?
+  fee              Decimal?
+  currency         String            @default("BRL")
+  installments     Int               @default(1)
+  status           TransactionStatus @default(PENDING)
+  paymentMethod    PaymentMethod
   customerName     String?
   customerEmail    String?
-  customerDocument String?    // CPF ou CNPJ
-  
-  // Rastreabilidade do Gateway
-  gateway       String      // "STRIPE", "MERCADO_PAGO"
-  externalId    String      @unique 
-  paymentUrl    String?     // Link do Boleto ou Checkout
-  pixQrCode     String?     // Texto do "Copia e Cola" do PIX
-  
-  // Metadados (JSON bruto para auditoria)
-  metadata      Json?
-  
-  // Relacionamentos
-  filialId      String
-  filial        Filial      @relation(fields: [filialId], references: [id])
-  
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  customerDocument String?
+  gateway          String
+  externalId       String            @unique
+  paymentUrl       String?
+  pixQrCode        String?
+  metadata         Json?
+  filialId         String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  filial           Filial            @relation(fields: [filialId], references: [id])
 
   @@index([filialId])
   @@index([externalId])
-  @@index([status]) // Indexar status é ótimo para filtros no Dashboard
+  @@index([status])
 }
 
-
-model ApiKey {
-  id            String   @id @default(cuid())
-  key           String   @unique // px_live_...
-  name          String   // Ex: "Loja Principal WordPress"
-  webhookUrl    String?
-  webhookSecret String   // whsec_...
-  filialId      String
-  filial        Filial   @relation(fields: [filialId], references: [id])
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-}
-
-// Enum para os papéis de usuário
 enum Role {
   ADMIN
   USER
 }
 
-
-// Definição dos Estados da Transação
 enum TransactionStatus {
- PENDING
+  PENDING
   PAID
   FAILED
   EXPIRED
   CANCELED
 }
 
-// Definição dos Métodos de Pagamento suportados
 enum PaymentMethod {
   PIX
   CREDIT_CARD
   BOLETO
+  CRYPTO
+}
+
+model WebhookLog {
+  id           String    @id @default(cuid())
+  provider     String
+  eventType    String
+  status       String
+  externalId   String?
+  statusCode   Int?
+  errorMessage String?
+  payload      Json?
+  headers      Json?
+  filialId     String
+  apiKeyId     String
+  createdAt    DateTime  @default(now())
+  processedAt  DateTime?
 }

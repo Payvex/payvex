@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
@@ -10,21 +9,21 @@ export class WebhookService {
   constructor(@InjectQueue('stripe-webhooks') private webhookQueue: Queue) {}
 
   async processStripe(rawBody: Buffer, signature: string) {
-    // 🚚 Apenas despachamos para a fila do Upstash
-    // Convertemos o Buffer para String para ele poder ser serializado no Redis
-    await this.webhookQueue.add(
+    const job = await this.webhookQueue.add(
       'process-webhook',
       {
-        rawBody: rawBody.toString(),
-        signature: signature,
+        rawBody: rawBody.toString('base64'),
+        signature,
       },
       {
-        attempts: 5, // Se o banco de dados falhar, o BullMQ tenta de novo
-        backoff: { type: 'exponential', delay: 3000 }, // 3s, 6s, 12s...
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 3000 },
+        removeOnComplete: true,
+        removeOnFail: 100,
       },
     );
 
-    this.logger.log('📥 Evento encaminhado para a fila de processamento.');
-    return { received: true };
+    this.logger.log(`📥 Evento encaminhado para a fila. Job: ${job.id}`);
+    return { received: true, jobId: job.id };
   }
 }

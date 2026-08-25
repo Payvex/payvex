@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable prettier/prettier */
+
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service/prisma.service';
 
@@ -86,10 +86,12 @@ export class TransactionsFindAllService {
     dailyTransactions.forEach((tx) => {
       const date = tx.createdAt.toISOString().split('T')[0];
       const current = chartMap.get(date) || { date, sales: 0, net: 0 };
+      const amount = Number(tx.amount || 0);
+      const netAmount = tx.netAmount === null ? amount : Number(tx.netAmount);
       chartMap.set(date, {
         date,
-        sales: current.sales + Number(tx.amount),
-        net: current.net + Number(tx.netAmount),
+        sales: current.sales + amount,
+        net: current.net + netAmount,
       });
     });
 

@@ -4,20 +4,32 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --brand-blue: #3a416f;
-  --brand-green: #82d616;
-  --radius: 0.625rem;
+  --background: #0B1020;
+  --surface: #161E2E;
+  --surface-hover: #1C263B;
+
+  --primary: #8DFF00;
+  --primary-dark: #6FD400;
+
+  --text: #F8FAFC;
+  --text-secondary: #94A3B8;
+
+  --border: #28334B;
 }
 
 body {
-  background: #f8f9fa;
-  color: var(--brand-blue);
+  background: var(--background);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
 
 @theme inline {
-  --color-brand-blue: var(--brand-blue);
-  --color-brand-green: var(--brand-green);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
 }

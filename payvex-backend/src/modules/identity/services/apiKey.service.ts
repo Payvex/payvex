@@ -1,9 +1,9 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+ 
 
-/* eslint-disable @typescript-eslint/require-await */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+ 
+ 
+ 
 
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
@@ -58,7 +58,7 @@ export class ApiKeyService {
     if (idsFiliais.length === 0) return [];
 
     // 2. Busca as chaves que estão vinculadas a esses IDs de filiais
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+     
     const keys = await this.prisma.apiKey.findMany({
       where: {
         filialId: { in: idsFiliais },
@@ -69,6 +69,8 @@ export class ApiKeyService {
     // 3. Monta o objeto final injetando o nome da filial manualmente
     return keys.map((key) => ({
       ...key,
+      keyPreview: `${key.key.slice(0, 14)}...`,
+      key: undefined,
       webhookSecretPreview: `${key.webhookSecret.slice(0, 10)}...`,
       webhookSecret: undefined,
       filial: {
@@ -203,6 +205,36 @@ export class ApiKeyService {
         name: true,
         webhookUrl: true,
         webhookSecret: true,
+        isActive: true,
+        filialId: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async rotateApiKey(id: string, companyId: string) {
+    const apiKey = await this.prisma.apiKey.findFirst({
+      where: {
+        id,
+        filial: { companyId },
+      },
+      select: { id: true },
+    });
+
+    if (!apiKey) {
+      throw new ForbiddenException('Api Key inválida para esta empresa.');
+    }
+
+    const key = `px_live_${randomBytes(24).toString('hex')}`;
+
+    return this.prisma.apiKey.update({
+      where: { id },
+      data: { key },
+      select: {
+        id: true,
+        name: true,
+        key: true,
+        webhookUrl: true,
         isActive: true,
         filialId: true,
         createdAt: true,

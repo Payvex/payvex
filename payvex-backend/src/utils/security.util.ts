@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 // src/utils/crypto-migration.util.ts
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 

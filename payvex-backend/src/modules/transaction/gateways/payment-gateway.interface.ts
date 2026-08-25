@@ -1,15 +1,11 @@
-/* eslint-disable prettier/prettier */
 export interface PaymentResponse {
   externalId: string;
   paymentUrl?: string;
   pixQrCode?: string;
+  status?: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'CANCELED';
   rawResponse: any;
 }
 
 export interface PaymentGateway {
-  // Adicionamos o segundo parâmetro 'credentials'
-  createPayment(
-    data: any,
-    credentials: { secretKey: string },
-  ): Promise<PaymentResponse>;
+  createPayment(data: any, credentials: any): Promise<PaymentResponse>;
 }

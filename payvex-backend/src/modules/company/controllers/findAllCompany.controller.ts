@@ -1,8 +1,10 @@
-import { Controller, Get, HttpCode } from '@nestjs/common';
+import { Controller, Get, HttpCode, UseGuards } from '@nestjs/common';
 import { HttpStatus } from '@nestjs/common/enums/http-status.enum';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FindAllCompanyService } from '../services/findAllCompany.service';
 
 @Controller('companies')
+@UseGuards(JwtAuthGuard)
 export class findAllCompanyController {
   constructor(private findAllCompanyService: FindAllCompanyService) {}
 

@@ -33,12 +33,12 @@ export default function AdminLayout({
           },
           classNames: {
             success:
-              "bg-white border-[#82d616]/50 text-[#3a416f] [&_[data-icon]]:text-[#82d616]",
+              "bg-white border-primary/50 text-surface [&_[data-icon]]:text-primary",
             error:
               "bg-white border-red-200 text-red-600 [&_[data-icon]]:text-red-500",
-            info: "bg-[#3a416f] border-[#3a416f] text-white [&_[data-icon]]:text-[#82d616]",
+            info: "bg-surface border-surface text-white [&_[data-icon]]:text-primary",
             description: "text-slate-500 font-medium",
-            actionButton: "bg-[#3a416f] text-white font-bold",
+            actionButton: "bg-surface text-white font-bold",
             cancelButton: "bg-slate-100 text-slate-500 font-bold",
           },
         }}

@@ -23,7 +23,7 @@ export function SummaryCards({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       {/* CARD 1: TOTAL APROVADO */}
       <div className=" p-8 rounded-[1rem] border border-white/5 flex flex-col items-center justify-center space-y-2 shadow-xl">
-        <TrendingUp className="text-[#82d616] h-6 w-6" />
+        <TrendingUp className="text-primary h-6 w-6" />
         <span className="text-2xl font-black text-[#1a1f2e]">
           {formatCurrency(totalApproved)}
         </span>
@@ -46,8 +46,8 @@ export function SummaryCards({
       {/* CARD 3: TOTAL TRANSAÇÕES */}
       <div className="p-8 rounded-[1rem] border border-white/5 flex flex-col items-center justify-center space-y-2 shadow-xl">
         <div className="flex items-center gap-2">
-          <Hash className="text-[#82d616] h-6 w-6" />
-          <span className="text-2xl font-black text-[#82d616]">
+          <Hash className="text-primary h-6 w-6" />
+          <span className="text-2xl font-black text-primary">
             {transactionCount}
           </span>
         </div>

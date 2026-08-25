@@ -1,8 +1,8 @@
-/* eslint-disable prettier/prettier */
 import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MinLength,
 } from 'class-validator';
@@ -27,6 +27,7 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'A "role" (função) do usuário é obrigatória.' })
   role: Role; // O admin define se o novo usuário é 'ADMIN' ou 'USER'
 
+  @IsOptional()
   @IsString()
   filialId?: string;
 }

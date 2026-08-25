@@ -28,7 +28,6 @@ export function CreateFilialModal({
   isOpen,
   onClose,
   onSuccess,
-  companyId,
 }: CreateFilialModalProps) {
   const [loading, setLoading] = useState(false);
   const [searchingCep, setSearchingCep] = useState(false);
@@ -78,10 +77,7 @@ export function CreateFilialModal({
 
     setLoading(true);
     try {
-      await api.post("/filiais", {
-        ...formData,
-        companyId,
-      });
+      await api.post("/filiais", formData);
 
       toast.success("Nova unidade cadastrada com sucesso!");
       onSuccess();
@@ -105,10 +101,10 @@ export function CreateFilialModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px] border-none shadow-2xl rounded-[0.625rem] bg-[#3a416f] text-white overflow-y-auto max-h-[90vh]">
+      <DialogContent className="sm:max-w-[550px] border-none shadow-2xl rounded-[0.625rem] bg-surface text-white overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white text-xl font-bold">
-            <Building2 className="text-[#82d616]" /> Nova Unidade de Negócio
+            <Building2 className="text-primary" /> Nova Unidade de Negócio
           </DialogTitle>
           <DialogDescription className="text-slate-300">
             Cadastre os dados jurídicos e de localização da sua nova filial.
@@ -146,7 +142,7 @@ export function CreateFilialModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-[#82d616] font-bold text-sm">
+          <div className="flex items-center gap-2 text-primary font-bold text-sm">
             <MapPin size={16} /> Localização
           </div>
 
@@ -167,7 +163,7 @@ export function CreateFilialModal({
                   }
                 />
                 {searchingCep && (
-                  <Loader2 className="absolute right-2 top-3 h-4 w-4 animate-spin text-[#82d616]" />
+                  <Loader2 className="absolute right-2 top-3 h-4 w-4 animate-spin text-primary" />
                 )}
               </div>
             </div>
@@ -240,7 +236,7 @@ export function CreateFilialModal({
           <Button
             onClick={handleCreate}
             disabled={loading}
-            className="bg-[#82d616] hover:bg-[#71bd13] text-[#3a416f] font-black px-8"
+            className="bg-primary hover:bg-primary-dark text-surface font-black px-8"
           >
             {loading ? (
               <Loader2 className="animate-spin h-4 w-4" />

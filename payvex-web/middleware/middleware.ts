@@ -1,21 +1,28 @@
-import { NextRequest, NextResponse } from "next/server"; // Correto ✅
+import { NextRequest, NextResponse } from "next/server";
+
+const protectedRoutes = [
+  "/dashboard",
+  "/profile",
+  "/integrations",
+  "/transactions",
+  "/payments",
+  "/company",
+  "/ecommerce",
+  "/subscriptions",
+  "/docs",
+];
 
 export function middleware(request: NextRequest) {
-  // 1. Tenta recuperar o token do cookie
   const token = request.cookies.get("@payvex:token")?.value;
 
-  // 2. Define as rotas que precisam de proteção
-  const isProtectedRoute =
-    request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/profile") ||
-    request.nextUrl.pathname.startsWith("/integrations");
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    request.nextUrl.pathname.startsWith(route),
+  );
 
-  // 3. Se for uma rota protegida e não tiver token, manda pro login
   if (isProtectedRoute && !token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // 4. Se o usuário já estiver logado e tentar ir pro login, manda pro dashboard
   if (request.nextUrl.pathname === "/login" && token) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
@@ -23,12 +30,17 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// O 'matcher' define em quais caminhos o middleware vai rodar
 export const config = {
   matcher: [
     "/dashboard/:path*",
     "/profile/:path*",
     "/integrations/:path*",
+    "/transactions/:path*",
+    "/payments/:path*",
+    "/company/:path*",
+    "/ecommerce/:path*",
+    "/subscriptions/:path*",
+    "/docs/:path*",
     "/login",
   ],
 };

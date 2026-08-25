@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service/prisma.service';
 import { AsaasWebhookController } from '../controllers/asaas.webhook.controller';
 import { MySubscriptionController } from '../controllers/subscriptionMe.controller';
 import { PlansController } from '../controllers/subscriptionPlans.controller';
@@ -17,7 +16,6 @@ import { UpgradeSubscriptionService } from '../services/upgradeSubscription.serv
   ],
   providers: [
     SubscriptionService,
-    PrismaService,
     AsaasService,
     UpgradeSubscriptionService,
   ],

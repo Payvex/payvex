@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -53,5 +52,8 @@ export class SignupDto {
   @ValidateNested({ each: true }) // Valida cada item do array
   @Type(() => CreateFilialDto) // Converte o JSON para instâncias da classe
   filiais: CreateFilialDto[];
-  phone: any;
+
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
 }

@@ -8,23 +8,24 @@ import { GatewayFactory } from '../gateways/gateway.factory';
 // Seus controllers
 import { TransactionsFindAllController } from '../controllers/transactions.controller';
 import { TransactionsCreateController } from '../controllers/transactions.create.controller';
+import { PluginTransactionsController } from '../controllers/plugin-transactions.controller';
 
 // Seus serviços
-import { PrismaService } from 'src/prisma.service/prisma.service';
 import { TransactionsService } from '../services/transactions.create.service';
 import { TransactionsFindAllService } from '../services/transactions.service';
+import { PluginTransactionsService } from '../services/plugin-transactions.service';
 import { WebhookModule } from '../webhooks/webhooks.module';
 
 @Module({
   imports: [AuthModule, WebhookModule],
 
-  controllers: [TransactionsCreateController, TransactionsFindAllController],
+  controllers: [TransactionsCreateController, TransactionsFindAllController, PluginTransactionsController],
   providers: [
     TransactionsService,
-    PrismaService,
     ApiKeyAuthGuard,
     GatewayFactory,
     TransactionsFindAllService,
+    PluginTransactionsService,
   ],
 })
 export class TransactionsModule {}

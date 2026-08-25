@@ -31,6 +31,18 @@
 $ npm install
 ```
 
+## Payvex AI Analyst
+
+Configure estas variáveis para liberar a IA analítica financeira do dashboard:
+
+```bash
+GROQ_API_KEY=gsk_...
+GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_BASE_URL=https://api.groq.com/openai/v1/chat/completions
+```
+
+A rota `POST /ai/financial-analyst/chat` usa JWT do painel e só responde para empresas com `subscription.hasAiAnalyst = true`.
+
 ## Compile and run the project
 
 ```bash

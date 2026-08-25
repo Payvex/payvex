@@ -65,8 +65,40 @@ export default function CompanyPage() {
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     if (userRole !== "ADMIN") return;
-    if (!confirm(`Tem certeza que deseja remover o acesso de ${userName}?`))
-      return;
+
+    toast.custom(
+      (t) => (
+        <div className="w-[360px] rounded-2xl border border-slate-200 bg-white p-4 text-surface shadow-2xl">
+          <p className="text-sm font-black">Remover acesso?</p>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            O usuário {userName} não poderá mais acessar esta empresa.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-lg px-3 py-2 text-[10px] font-black uppercase text-slate-500 hover:bg-slate-100"
+              onClick={() => toast.dismiss(t.id)}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="rounded-lg bg-red-600 px-3 py-2 text-[10px] font-black uppercase text-white hover:bg-red-700"
+              onClick={() => {
+                toast.dismiss(t.id);
+                deleteUser(userId);
+              }}
+            >
+              Remover
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: 10000 },
+    );
+  };
+
+  const deleteUser = async (userId: string) => {
     try {
       await api.delete(`/identity/collaborator/${userId}`);
       toast.success("Acesso removido.");
@@ -103,7 +135,7 @@ export default function CompanyPage() {
   if (loading)
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#82d616]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
 
@@ -115,7 +147,7 @@ export default function CompanyPage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-3xl font-black text-[#3a416f] tracking-tight">
+          <h1 className="text-3xl font-black text-surface tracking-tight">
             Configurações da Empresa
           </h1>
           <p className="text-slate-500 text-sm">
@@ -128,7 +160,7 @@ export default function CompanyPage() {
         {isAdmin && (
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="bg-[#3a416f] text-[#82d616] hover:bg-[#2a3052] font-bold rounded-xl shadow-lg gap-2"
+            className="bg-surface text-primary hover:bg-surface-hover font-bold rounded-xl shadow-lg gap-2"
           >
             <Plus size={18} /> Nova Unidade
           </Button>
@@ -139,8 +171,8 @@ export default function CompanyPage() {
         <div className="lg:col-span-3 space-y-8">
           {/* SEÇÃO 1: FILIAIS */}
           <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-            <h2 className="flex items-center gap-2 text-[#3a416f] font-bold mb-6">
-              <Building2 className="text-[#82d616] h-5 w-5" /> Unidades de
+            <h2 className="flex items-center gap-2 text-surface font-bold mb-6">
+              <Building2 className="text-primary h-5 w-5" /> Unidades de
               Negócio
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -160,14 +192,14 @@ export default function CompanyPage() {
                         <Building2
                           className={
                             filial.isActive
-                              ? "text-[#3a416f]"
+                              ? "text-surface"
                               : "text-slate-400"
                           }
                           size={20}
                         />
                       </div>
                       <div>
-                        <p className="font-black text-[#3a416f] text-sm truncate max-w-[150px]">
+                        <p className="font-black text-surface text-sm truncate max-w-[150px]">
                           {filial.name}
                         </p>
                         <p className="text-[10px] font-mono text-slate-500">
@@ -179,7 +211,7 @@ export default function CompanyPage() {
                       className={cn(
                         "px-2 py-0.5 rounded-full text-[8px] font-black tracking-widest uppercase",
                         filial.isActive
-                          ? "bg-[#82d616]/20 text-[#3a416f]"
+                          ? "bg-primary/20 text-surface"
                           : "bg-red-100 text-red-500",
                       )}
                     >
@@ -199,7 +231,7 @@ export default function CompanyPage() {
                             });
                             setIsUserModalOpen(true);
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black bg-[#3a416f] text-white hover:bg-[#82d616] hover:text-[#3a416f] transition-all rounded-lg uppercase"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black bg-surface text-white hover:bg-primary hover:text-surface transition-all rounded-lg uppercase"
                         >
                           <UserPlus size={12} /> + Usuário
                         </button>
@@ -240,8 +272,8 @@ export default function CompanyPage() {
           {/* SEÇÃO 2: TABELA DE USUÁRIOS */}
           <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="flex items-center gap-2 text-[#3a416f] font-bold">
-                <Users className="text-[#82d616] h-5 w-5" /> Colaboradores e
+              <h2 className="flex items-center gap-2 text-surface font-bold">
+                <Users className="text-primary h-5 w-5" /> Colaboradores e
                 Acessos
               </h2>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -275,11 +307,11 @@ export default function CompanyPage() {
                     >
                       <td className="py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-[#3a416f] border border-slate-200">
+                          <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-surface border border-slate-200">
                             {user.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold text-[#3a416f]">
+                            <span className="text-sm font-bold text-surface">
                               {user.name}
                             </span>
                             <span className="text-[10px] text-slate-400">
@@ -324,7 +356,7 @@ export default function CompanyPage() {
                             <Trash2 size={16} />
                           </button>
                         ) : index === 0 ? (
-                          <span className="text-[8px] font-black text-[#82d616] uppercase italic mr-2">
+                          <span className="text-[8px] font-black text-primary uppercase italic mr-2">
                             Proprietário
                           </span>
                         ) : (
@@ -344,14 +376,14 @@ export default function CompanyPage() {
 
         {/* COLUNA DIREITA */}
         <div className="space-y-6">
-          <div className="bg-[#3a416f] p-8 rounded-2xl text-white shadow-xl relative overflow-hidden">
-            <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-[#82d616] rounded-full blur-[60px] opacity-10" />
-            <h3 className="flex items-center gap-2 font-bold mb-6 text-[#82d616] text-[10px] uppercase tracking-[0.2em]">
+          <div className="bg-surface p-8 rounded-2xl text-white shadow-xl relative overflow-hidden">
+            <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-primary rounded-full blur-[60px] opacity-10" />
+            <h3 className="flex items-center gap-2 font-bold mb-6 text-primary text-[10px] uppercase tracking-[0.2em]">
               <ShieldCheck size={16} /> Proprietário Master
             </h3>
             <div className="space-y-4 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full border-2 border-[#82d616] flex items-center justify-center font-black text-lg bg-[#2a3052]">
+                <div className="h-12 w-12 rounded-full border-2 border-primary flex items-center justify-center font-black text-lg bg-[#2a3052]">
                   {adminMaster?.name?.substring(0, 2).toUpperCase()}
                 </div>
                 <div>
@@ -368,7 +400,7 @@ export default function CompanyPage() {
                 <p className="text-[9px] uppercase text-slate-400 font-bold mb-1">
                   Empresa Vinculada
                 </p>
-                <p className="text-xs font-bold text-[#82d616]">
+                <p className="text-xs font-bold text-primary">
                   {company?.name}
                 </p>
               </div>
@@ -377,16 +409,16 @@ export default function CompanyPage() {
 
           <div className="bg-slate-50 p-6 border border-slate-200 rounded-2xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="bg-[#82d616] p-2 rounded-lg text-[#3a416f]">
+              <div className="bg-primary p-2 rounded-lg text-surface">
                 <FileText size={18} />
               </div>
-              <span className="text-xs font-black text-[#3a416f] uppercase tracking-wider">
+              <span className="text-xs font-black text-surface uppercase tracking-wider">
                 Assinatura Payvex
               </span>
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
               Você está no plano{" "}
-              <b className="text-[#3a416f]">
+              <b className="text-surface">
                 {company?.subscription?.planName?.toUpperCase()}
               </b>
               .
@@ -395,7 +427,7 @@ export default function CompanyPage() {
             {isAdmin && (
               <Button
                 variant="outline"
-                className="w-full mt-4 text-[10px] font-black uppercase h-9 border-slate-200 hover:bg-[#82d616] hover:text-[#3a416f] transition-all"
+                className="w-full mt-4 text-[10px] font-black uppercase h-9 border-slate-200 hover:bg-primary hover:text-surface transition-all"
               >
                 Mudar de Plano
               </Button>

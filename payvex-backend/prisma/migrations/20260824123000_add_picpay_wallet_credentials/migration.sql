@@ -1,0 +1,4 @@
+ALTER TABLE "Filial"
+ADD COLUMN IF NOT EXISTS "picPayClientId" TEXT,
+ADD COLUMN IF NOT EXISTS "picPayClientSecret" TEXT,
+ADD COLUMN IF NOT EXISTS "picPaySellerToken" TEXT;

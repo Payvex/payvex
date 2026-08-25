@@ -63,14 +63,14 @@ export function CreateUserModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white rounded-[1rem] bg-[#3a416f] border-none shadow-2xl max-w-md">
+      <DialogContent className="bg-white rounded-[1rem] bg-surface border-none shadow-2xl max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-[#FFFFFF] font-bold text-xl">
-            <UserPlus className="text-[#82d616]" /> Novo Colaborador
+            <UserPlus className="text-primary" /> Novo Colaborador
           </DialogTitle>
           <p className="text-xs text-slate-400 font-medium">
             Vinculando acesso à unidade:{" "}
-            <span className="text-[#3a416f] font-bold">
+            <span className="text-surface font-bold">
               {filialName || "Geral"}
             </span>
           </p>
@@ -172,7 +172,7 @@ export function CreateUserModal({
             <Button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-[#3a416f] hover:bg-[#2a3052] text-[#82d616] font-black"
+              className="flex-1 bg-surface hover:bg-surface-hover text-primary font-black"
             >
               {loading ? <Loader2 className="animate-spin" /> : "CRIAR USUÁRIO"}
             </Button>

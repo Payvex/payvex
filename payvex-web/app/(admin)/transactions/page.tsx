@@ -247,7 +247,7 @@ export default function TransactionsPage() {
 
   const getStatusBadge = (status: string) => {
     const styles: any = {
-      PAID: "bg-[#82d616]/10 text-[#82d616] border-[#82d616]/20",
+      PAID: "bg-primary/10 text-primary border-primary/20",
       PENDING: "bg-amber-500/10 text-amber-500 border-amber-500/20",
       CANCELLED: "bg-red-500/10 text-red-500 border-red-500/20",
     };
@@ -275,12 +275,12 @@ export default function TransactionsPage() {
       <div className="max-w-[1200px] mx-auto space-y-8 pb-10">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-[#3a416f]/60 font-semibold text-sm uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-surface/60 font-semibold text-sm uppercase tracking-widest">
               <Receipt size={16} />
               <span>Extrato de Operações</span>
             </div>
-            <h1 className="text-4xl font-extrabold text-[#3a416f]">
-              Vendas e <span className="text-[#82d616]">Recebíveis</span>
+            <h1 className="text-4xl font-extrabold text-surface">
+              Vendas e <span className="text-primary">Recebíveis</span>
             </h1>
           </div>
 
@@ -292,7 +292,7 @@ export default function TransactionsPage() {
               )}
             >
               <select
-                className="bg-transparent text-sm font-bold text-[#3a416f] outline-none pr-4 cursor-pointer w-full disabled:cursor-not-allowed"
+                className="bg-transparent text-sm font-bold text-surface outline-none pr-4 cursor-pointer w-full disabled:cursor-not-allowed"
                 value={selectedFilialId}
                 disabled={userRole === "USER"}
                 onChange={(e) => {
@@ -317,7 +317,7 @@ export default function TransactionsPage() {
             >
               <RefreshCcw
                 size={18}
-                className={cn(loading && "animate-spin text-[#82d616]")}
+                className={cn(loading && "animate-spin text-primary")}
               />
             </Button>
           </div>
@@ -349,7 +349,7 @@ export default function TransactionsPage() {
                   <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Vlr. Bruto
                   </th>
-                  <th className="px-6 py-5 text-[10px] font-black text-[#3a416f] uppercase tracking-widest">
+                  <th className="px-6 py-5 text-[10px] font-black text-surface uppercase tracking-widest">
                     Vlr. Líquido
                   </th>
                   <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -365,12 +365,12 @@ export default function TransactionsPage() {
                   transactions.map((tx) => (
                     <tr
                       key={tx.id}
-                      className="hover:bg-[#82d616]/5 transition-all group"
+                      className="hover:bg-primary/5 transition-all group"
                     >
                       {/* COLUNA DATA E HORA */}
                       <td className="px-6 py-5">
                         <div className="flex flex-col items-center">
-                          <span className="text-sm font-bold text-[#3a416f]">
+                          <span className="text-sm font-bold text-surface">
                             {format(new Date(tx.createdAt), "dd/MM/yy")}
                           </span>
                           <span className="text-[10px] text-slate-400 font-medium">
@@ -386,7 +386,7 @@ export default function TransactionsPage() {
                         >
                           <Fingerprint
                             size={14}
-                            className="text-slate-300 group-hover/id:text-[#82d616]"
+                            className="text-slate-300 group-hover/id:text-primary"
                           />
                           <code className="text-[10px] font-mono text-slate-400">
                             {tx.id.substring(0, 8)}...
@@ -397,7 +397,7 @@ export default function TransactionsPage() {
                           />
                         </button>
                       </td>
-                      <td className="px-6 py-5 text-sm font-bold text-[#3a416f]">
+                      <td className="px-6 py-5 text-sm font-bold text-surface">
                         {tx.customerName}
                       </td>
                       <td className="px-6 py-5">
@@ -416,7 +416,7 @@ export default function TransactionsPage() {
                         }).format(tx.amount)}
                       </td>
 
-                      <td className="px-6 py-5 font-black text-[#3a416f]">
+                      <td className="px-6 py-5 font-black text-surface">
                         {new Intl.NumberFormat("pt-BR", {
                           style: "currency",
                           currency: "BRL",
@@ -443,7 +443,7 @@ export default function TransactionsPage() {
                   <tr>
                     <td colSpan={8} className="text-center py-20">
                       {loading ? (
-                        <Loader2 className="animate-spin h-8 w-8 mx-auto text-[#82d616]" />
+                        <Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" />
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-slate-400">
                           <Calendar size={32} className="opacity-20" />

@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-
 import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { FindAllIndetityService } from '../services/findAllIdentity.service';
 

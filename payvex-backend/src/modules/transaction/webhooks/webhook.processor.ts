@@ -1,8 +1,6 @@
-/* eslint-disable prettier/prettier */
-
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { TransactionStatus } from '@prisma/client';
 import { Job } from 'bullmq';
@@ -24,6 +22,23 @@ export class WebhookProcessor extends WorkerHost {
     super();
   }
 
+  @OnWorkerEvent('active')
+  onActive(job: Job) {
+    this.logger.log(`🚚 Job ${job.id} iniciado.`);
+  }
+
+  @OnWorkerEvent('completed')
+  onCompleted(job: Job) {
+    this.logger.log(`✅ Job ${job.id} concluído.`);
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job | undefined, error: Error) {
+    this.logger.error(
+      `❌ Job ${job?.id ?? 'desconhecido'} falhou: ${error.message}`,
+    );
+  }
+
   /**
    * ⚙️ EXECUÇÃO DO JOB
    * O BullMQ chama este método automaticamente para cada item na fila.
@@ -32,7 +47,15 @@ export class WebhookProcessor extends WorkerHost {
     job: Job<{ rawBody: string; signature: string }>,
   ): Promise<any> {
     const { rawBody, signature } = job.data;
-    const bodyBuffer = Buffer.from(rawBody);
+    return this.processPayload(Buffer.from(rawBody, 'base64'), signature, job.id);
+  }
+
+  async processPayload(
+    bodyBuffer: Buffer,
+    signature: string,
+    jobId: string | number = 'direct',
+  ): Promise<any> {
+    const payload = bodyBuffer.toString('utf8');
 
     if (!this.MASTER_KEY) {
       this.logger.error('❌ [CRÍTICO] MASTER_KEY não encontrada no ambiente.');
@@ -40,12 +63,13 @@ export class WebhookProcessor extends WorkerHost {
     }
 
     // 1. Identificação Prévia da Filial (precisamos saber de quem é a chave)
-    const eventData = JSON.parse(rawBody);
-    const filialId = eventData.data.object.metadata?.filialId;
+    const eventData = JSON.parse(payload);
+    const stripeObject = eventData.data?.object;
+    const filialId = stripeObject?.metadata?.filialId;
 
     if (!filialId) {
       this.logger.error(
-        `⚠️ [ALERTA] Evento ignorado: metadata filialId ausente no job ${job.id}`,
+        `⚠️ [ALERTA] Evento ${eventData.type} ignorado: metadata filialId ausente no job ${jobId}`,
       );
       return;
     }
@@ -80,8 +104,9 @@ export class WebhookProcessor extends WorkerHost {
         webhookSecret,
       );
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       this.logger.error(
-        `❌ [ASSINATURA] Falha no Job ${job.id}: ${err.message}`,
+        `❌ [ASSINATURA] Falha no Job ${jobId}: ${message}`,
       );
       return; // Erro de assinatura não deve ser retentado (a assinatura não mudará)
     }
@@ -150,8 +175,9 @@ export class WebhookProcessor extends WorkerHost {
         await this.updateTransactionStatus(session.id, 'PAID');
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(
-        `❌ Erro ao processar dados financeiros: ${error.message}`,
+        `❌ Erro ao processar dados financeiros: ${message}`,
       );
       // Marcamos como PAID mesmo se a taxa falhar, para não prejudicar o cliente
       await this.updateTransactionStatus(session.id, 'PAID');
@@ -194,7 +220,8 @@ export class WebhookProcessor extends WorkerHost {
         this.logger.warn(`⚠️ Transação ${externalId} não encontrada no banco.`);
       }
     } catch (error) {
-      this.logger.error(`❌ Erro no banco de dados: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`❌ Erro no banco de dados: ${message}`);
       throw error; // Força o BullMQ a retentar o job
     }
   }

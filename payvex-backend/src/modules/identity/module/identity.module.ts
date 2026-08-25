@@ -6,8 +6,6 @@ import { ApiKeyAuthGuard } from 'src/auth/guards/api-key-auth.guard';
 import { AuthModule } from 'src/auth/modules/auth.module';
 
 // Seus controllers
-import { findAllCompanyController } from '../../company/controllers/findAllCompany.controller';
-import { FindCompanyByIdController } from '../../company/controllers/findCompanyById.controller';
 import { ApiKeyController } from '../controllers/apiKey.controller';
 import { PluginApiKeyController } from '../controllers/pluginApiKey.controller';
 import { CreateIdentityController } from '../controllers/createIdentity.controller';
@@ -17,9 +15,6 @@ import { identityLoginController } from '../controllers/identity.login.controlle
 import { SignupController } from '../controllers/indentity.signup.controller';
 
 // Seus serviços
-import { PrismaService } from 'src/prisma.service/prisma.service';
-import { FindAllCompanyService } from '../../company/services/findAllCompany.service';
-import { FindCompanyByIdService } from '../../company/services/findCompanyById.service';
 import { ApiKeyService } from '../services/apiKey.service';
 import { FindAllIndetityService } from '../services/findAllIdentity.service';
 import { FindIdentityByIdService } from '../services/findIdentityById.service';
@@ -34,10 +29,8 @@ import { WebhookService as ApiKeyWebhookService } from '../services/webhookApiKe
   controllers: [
     SignupController,
     identityLoginController,
-    findAllCompanyController,
     FindAllIdentityController,
     FindIdentityByIdController,
-    FindCompanyByIdController,
     CreateIdentityController,
     ApiKeyController,
     PluginApiKeyController,
@@ -45,11 +38,8 @@ import { WebhookService as ApiKeyWebhookService } from '../services/webhookApiKe
   providers: [
     singupCreateService,
     identityLoginService,
-    FindAllCompanyService,
     FindAllIndetityService,
-    PrismaService,
     FindIdentityByIdService,
-    FindCompanyByIdService,
     IdentityCreateService,
     ApiKeyService,
     ApiKeyWebhookService,

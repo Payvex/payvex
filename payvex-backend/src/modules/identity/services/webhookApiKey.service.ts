@@ -1,7 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
@@ -22,7 +19,11 @@ export class WebhookService {
     CANCELED: 'payment.canceled',
   };
 
-  private generateSignature(payload: string, timestamp: string, secret: string) {
+  private generateSignature(
+    payload: string,
+    timestamp: string,
+    secret: string,
+  ) {
     return createHmac('sha256', secret)
       .update(`${timestamp}.${payload}`)
       .digest('hex');
@@ -41,11 +42,7 @@ export class WebhookService {
     // 1. Busca a transação
     const tx = await this.prisma.transaction.findUnique({
       where: { id: transactionId },
-      include: {
-        filial: {
-          include: { apiKeys: { where: { isActive: true }, take: 1 } },
-        },
-      },
+      include: { filial: true },
     });
 
     // 🛡️ CORREÇÃO: Verifica se a transação existe antes de prosseguir
@@ -56,11 +53,24 @@ export class WebhookService {
       return;
     }
 
-    // Agora o TS sabe que 'tx' não é null
-    const apiKey = tx.filial.apiKeys[0];
+    const metadata = (tx.metadata as Record<string, any>) || {};
+    const apiKey = await this.prisma.apiKey.findFirst({
+      where: {
+        filialId: tx.filialId,
+        isActive: true,
+        ...(metadata.apiKeyId ? { id: String(metadata.apiKeyId) } : {}),
+      },
+    });
+
+    const fallbackApiKey =
+      apiKey ||
+      (await this.prisma.apiKey.findFirst({
+        where: { filialId: tx.filialId, isActive: true },
+        orderBy: { createdAt: 'asc' },
+      }));
 
     // 2. Se não houver chave ou URL, cancela o envio
-    if (!apiKey || !apiKey.webhookUrl) {
+    if (!fallbackApiKey || !fallbackApiKey.webhookUrl) {
       this.logger.warn(
         `Webhook ignorado: Filial ${tx.filialId} não possui URL de Webhook configurada.`,
       );
@@ -91,33 +101,70 @@ export class WebhookService {
     const signature = this.generateSignature(
       rawPayload,
       timestamp,
-      apiKey.webhookSecret,
+      fallbackApiKey.webhookSecret,
     );
+
+    const headers = {
+      'X-Payvex-Signature': `sha256=${signature}`,
+      'X-Payvex-Timestamp': timestamp,
+      'X-Payvex-Event': event,
+      'X-Payvex-Delivery': deliveryId,
+      'Content-Type': 'application/json',
+    };
+
+    // --- 4. LOG DE AUDITORIA (NOVO) ---
+    const log = await this.prisma.webhookLog.create({
+      data: {
+        provider: 'PAYVEX_OUTGOING',
+        eventType: event,
+        filialId: tx.filialId,
+        apiKeyId: fallbackApiKey.id,
+        externalId: tx.externalId,
+        payload: payload as any,
+        headers: headers as any,
+        status: 'PENDING',
+      },
+    });
 
     try {
       this.logger.log(
-        `Iniciando disparo de Webhook para: ${apiKey.webhookUrl}`,
+        `Iniciando disparo de Webhook para: ${fallbackApiKey.webhookUrl}`,
       );
 
-      await firstValueFrom(
-        this.httpService.post(apiKey.webhookUrl, payload, {
-          headers: {
-            'X-Payvex-Signature': `sha256=${signature}`,
-            'X-Payvex-Timestamp': timestamp,
-            'X-Payvex-Event': event,
-            'X-Payvex-Delivery': deliveryId,
-            'Content-Type': 'application/json',
-          },
+      const response = await firstValueFrom(
+        this.httpService.post(fallbackApiKey.webhookUrl, payload, {
+          headers,
           timeout: 7000,
         }),
       );
 
+      // Atualiza log com sucesso
+      await this.prisma.webhookLog.update({
+        where: { id: log.id },
+        data: {
+          status: 'SUCCESS',
+          statusCode: response.status,
+          processedAt: new Date(),
+        },
+      });
+
       this.logger.log(
         `✅ Webhook entregue com sucesso: TX ${tx.id} | Delivery ${deliveryId}`,
       );
-    } catch (error) {
+    } catch (error: any) {
+      // Atualiza log com falha
+      await this.prisma.webhookLog.update({
+        where: { id: log.id },
+        data: {
+          status: 'FAILED',
+          statusCode: error.response?.status || 500,
+          errorMessage: error.message,
+          processedAt: new Date(),
+        },
+      });
+
       this.logger.error(
-        `❌ Erro ao entregar Webhook para ${apiKey.webhookUrl}: ${error.message}`,
+        `❌ Erro ao entregar Webhook para ${fallbackApiKey.webhookUrl}: ${error.message}`,
       );
     }
   }

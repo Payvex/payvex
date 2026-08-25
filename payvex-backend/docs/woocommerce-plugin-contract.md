@@ -1,44 +1,52 @@
-# Contrato Tecnico do Plugin WooCommerce
+# Contrato WooCommerce Payvex
 
-## Objetivo
+## Checkout WooCommerce -> Payvex
 
-Permitir que um plugin WooCommerce se conecte a Payvex usando uma `apiKey`
-por loja/unidade, crie cobrancas e receba webhooks assinados de pagamento.
+`POST <PAYVEX_API_URL>/transactions/plugin/create`
 
-## Fluxo de instalacao
+Headers:
+- `Content-Type: application/json`
+- `X-API-KEY: <API_KEY_PAYVEX>`
+- `X-Payvex-Plugin: woocommerce/<version>`
 
-1. O lojista gera uma `apiKey` no painel Payvex e escolhe a filial.
-2. O plugin salva essa `apiKey` no WordPress.
-3. O plugin consulta os detalhes da instalacao em `GET /identity/plugin/me`.
-4. O plugin registra sua URL de webhook em `PATCH /identity/plugin/webhook`.
-5. O plugin cria cobrancas em `POST /transactions/plugin/create`.
-6. A Payvex envia eventos assinados para a `webhookUrl` cadastrada.
+Payload mínimo:
 
-## Autenticacao do plugin
-
-Enviar um dos headers abaixo:
-
-```http
-X-API-Key: px_live_xxxxxxxxx
+```json
+{
+  "amount": 10000,
+  "currency": "BRL",
+  "paymentMethod": "PIX",
+  "gateway": "MERCADO_PAGO",
+  "orderId": "1234",
+  "returnUrl": "https://loja.com/checkout/order-received/1234",
+  "customerEmail": "comprador@example.com",
+  "customerName": "Comprador",
+  "metadata": {
+    "orderId": "1234",
+    "woocommerceOrderId": "1234",
+    "source": "woocommerce"
+  }
+}
 ```
 
-ou
+`amount` deve ser enviado em centavos.
 
-```http
-Authorization: Bearer px_live_xxxxxxxxx
+Resposta esperada:
+
+```json
+{
+  "id": "external-id",
+  "paymentUrl": "https://...",
+  "pixQrCode": "000201...",
+  "status": "PENDING"
+}
 ```
 
-## Endpoints do plugin
+## Registro Automático De Webhook
 
-### `GET /identity/plugin/me`
+Ao salvar as configurações do plugin, ele registra automaticamente:
 
-Retorna dados basicos da instalacao atual.
-
-### `PATCH /identity/plugin/webhook`
-
-Configura a URL do webhook da instalacao.
-
-Body:
+`PATCH <PAYVEX_API_URL>/identity/plugin/webhook`
 
 ```json
 {
@@ -46,65 +54,39 @@ Body:
 }
 ```
 
-### `POST /transactions/plugin/create`
+## Payvex -> WooCommerce
 
-Cria uma cobranca usando a `apiKey` da loja.
+O Payvex dispara o callback cadastrado na API Key quando a transação muda de status.
 
-Body:
+Endpoint do plugin:
 
-```json
-{
-  "amount": 129.9,
-  "paymentMethod": "PIX",
-  "gateway": "STRIPE",
-  "filialId": "filial_123",
-  "customerName": "Joao Silva",
-  "customerEmail": "joao@email.com",
-  "metadata": {
-    "orderId": 1234,
-    "orderKey": "wc_order_abcd1234",
-    "siteUrl": "https://loja.com"
-  }
-}
+`POST https://loja.com/wp-json/payvex/v1/webhook`
+
+Headers assinados:
+- `X-Payvex-Signature: sha256=<hmac>`
+- `X-Payvex-Timestamp: <timestamp>`
+- `X-Payvex-Event: payment.approved | payment.failed | payment.expired | payment.canceled`
+
+Assinatura:
+
+```text
+HMAC_SHA256(timestamp + "." + rawBody, webhookSecret)
 ```
 
-## Webhooks enviados pela Payvex
+O plugin usa o `webhookSecret` gerado junto com a API Key Payvex.
 
-Eventos iniciais:
+Mapeamento de status:
+- `PAID` / `payment.approved`: chama `$order->payment_complete()`
+- `FAILED` / `payment.failed`: pedido `failed`
+- `EXPIRED` / `payment.expired`: pedido `cancelled`
+- `CANCELED` / `payment.canceled`: pedido `cancelled`
+- `PENDING` / `payment.pending`: pedido `on-hold`
 
-- `payment.approved`
-- `payment.failed`
-- `payment.expired`
-- `payment.canceled`
+## Payvex Backend -> WooCommerce
 
-Headers enviados:
+Quando o Payvex precisar criar um pedido diretamente no WooCommerce, o plugin expõe:
 
-```http
-X-Payvex-Signature: sha256=<hash>
-X-Payvex-Timestamp: 1710000000000
-X-Payvex-Event: payment.approved
-X-Payvex-Delivery: 550e8400-e29b-41d4-a716-446655440000
-```
+- `POST /wp-json/wc/v3/payvex/transactions`
+- `POST /wp-json/wc/v3/payvex/transactions/{id}/refund`
 
-Base assinada:
-
-```txt
-<timestamp>.<raw-json-payload>
-```
-
-Algoritmo:
-
-- `HMAC-SHA256`
-
-## Correlacao com pedidos WooCommerce
-
-O plugin deve enviar identificadores do pedido no campo `metadata`.
-
-Campos recomendados:
-
-- `metadata.orderId`
-- `metadata.orderKey`
-- `metadata.siteUrl`
-
-Esses mesmos dados retornam no webhook dentro de `data.metadata`, permitindo
-localizar o pedido com maior confiabilidade do que apenas por IDs da transacao.
+Essas rotas usam autenticação REST do WooCommerce com Consumer Key e Consumer Secret.

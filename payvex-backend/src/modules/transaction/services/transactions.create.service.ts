@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -10,6 +8,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from 'src/prisma.service/prisma.service';
 import { decryptWithKey } from 'src/utils/security.util';
 import { CreateTransactionDto } from '../dtos/create-transaction.dto';
@@ -72,12 +71,17 @@ export class TransactionsService {
     try {
       // 3. Obtenção do adaptador (Stripe/Mercado Pago)
       const adapter = this.gatewayFactory.getGateway(dto.gateway);
+      const payvexReference = dto.metadata?.payvexReference || randomUUID();
 
       // 4. Execução do pagamento
-      const gatewayResponse = await adapter.createPayment(dto, credentials);
+      const gatewayResponse = await adapter.createPayment(
+        { ...dto, payvexReference },
+        credentials,
+      );
 
       const metadata = {
         ...(dto.metadata || {}),
+        payvexReference,
         gatewayResponse: gatewayResponse.rawResponse,
       };
 
@@ -85,16 +89,18 @@ export class TransactionsService {
       return await this.prisma.transaction.create({
         data: {
           amount: dto.amount,
+          currency: dto.currency || 'BRL',
           paymentMethod: dto.paymentMethod,
           gateway: dto.gateway,
           filialId: dto.filialId,
           customerName: dto.customerName,
           customerEmail: dto.customerEmail,
+          customerDocument: dto.customerDocument,
           externalId: gatewayResponse.externalId,
           paymentUrl: gatewayResponse.paymentUrl,
           pixQrCode: gatewayResponse.pixQrCode,
           metadata: metadata as any,
-          status: 'PENDING',
+          status: gatewayResponse.status || 'PENDING',
         },
       });
     } catch (error: any) {
@@ -141,14 +147,18 @@ export class TransactionsService {
       throw new Error('Configuração de segurança (ENCRYPTION_KEY) ausente.');
     }
 
-    const gpt = gateway.toUpperCase();
+    const gpt = gateway.toUpperCase().replace(/\s+/g, '_');
+    const dec = (value?: string | null) =>
+      value ? decryptWithKey(value, this.MASTER_KEY as string) : undefined;
 
     if (gpt === 'STRIPE') {
       if (!filial.stripeSecretKey)
         throw new ForbiddenException('Stripe não configurado.');
 
       return {
-        secretKey: decryptWithKey(filial.stripeSecretKey, this.MASTER_KEY),
+        secretKey: dec(filial.stripeSecretKey),
+        publicKey: dec(filial.stripePublicKey),
+        webhookSecret: dec(filial.stripeWebhookSecret),
       };
     }
 
@@ -157,10 +167,165 @@ export class TransactionsService {
         throw new ForbiddenException('Mercado Pago não configurado.');
 
       return {
-        secretKey: decryptWithKey(
-          filial.mercadoPagoAccessToken,
-          this.MASTER_KEY,
-        ),
+        secretKey: dec(filial.mercadoPagoAccessToken),
+        accessToken: dec(filial.mercadoPagoAccessToken),
+        webhookSecret: dec(filial.mercadoPagoWebhookSecret),
+        testMode: !!filial.mercadoPagoTestMode,
+      };
+    }
+
+    if (gpt === 'PAGARME' || gpt === 'PAGAR_ME') {
+      if (!filial.pagarMeAccessToken)
+        throw new ForbiddenException('Pagar.me não configurado.');
+
+      return {
+        apiKey: dec(filial.pagarMeAccessToken),
+        publicKey: dec(filial.pagarMePublicKey),
+      };
+    }
+
+    if (gpt === 'PAGBANK' || gpt === 'PAG_BANK') {
+      if (!filial.pagarBankPrivateKey)
+        throw new ForbiddenException('PagBank não configurado.');
+
+      return {
+        merchantId: filial.cnpj,
+        privateKey: dec(filial.pagarBankPrivateKey),
+        accessToken: dec(filial.pagarBankPrivateKey),
+        sandbox: !!filial.pagarBankSandbox,
+      };
+    }
+
+    if (gpt === 'ASAAS') {
+      if (!filial.asaasApiKey)
+        throw new ForbiddenException('Asaas não configurado.');
+
+      return {
+        apiKey: dec(filial.asaasApiKey),
+        webhookToken: dec(filial.asaasWebhookToken),
+        sandbox: !!filial.asaasSandbox,
+      };
+    }
+
+    if (gpt === 'CIELO' || gpt === 'CIEL0') {
+      if (!filial.cieloMerchantId || !filial.cieloMerchantKey)
+        throw new ForbiddenException('Cielo não configurado.');
+
+      return {
+        merchantId: dec(filial.cieloMerchantId),
+        merchantKey: dec(filial.cieloMerchantKey),
+        sandbox: !!filial.cieloSandbox,
+      };
+    }
+
+    if (gpt === 'STONE') {
+      if (!filial.stoneApiKey)
+        throw new ForbiddenException('Stone não configurado.');
+
+      return {
+        apiKey: dec(filial.stoneApiKey),
+        clientId: dec(filial.stoneClientId),
+        secret: dec(filial.stoneSecret),
+        sandbox: !!filial.stoneSandbox,
+      };
+    }
+
+    if (gpt === 'NOW_PAYMENTS' || gpt === 'NOWPAYMENTS') {
+      if (!filial.nowPaymentsApiKey)
+        throw new ForbiddenException('NOWPayments não configurado.');
+
+      return {
+        apiKey: dec(filial.nowPaymentsApiKey),
+        ipnSecret: dec(filial.nowPaymentsIpnSecret),
+      };
+    }
+
+    if (gpt === 'COINBASE' || gpt === 'COINBASE_COMMERCE') {
+      if (!filial.coinbaseCommerceApiKey)
+        throw new ForbiddenException('Coinbase Commerce não configurado.');
+
+      return {
+        apiKey: dec(filial.coinbaseCommerceApiKey),
+        webhookSecret: dec(filial.coinbaseCommerceWebhookSecret),
+      };
+    }
+
+    if (gpt === 'BITPAY' || gpt === 'BIT_PAY') {
+      if (!filial.bitPayToken)
+        throw new ForbiddenException('BitPay não configurado.');
+
+      return {
+        token: dec(filial.bitPayToken),
+        sandbox: !!filial.bitPaySandbox,
+      };
+    }
+
+    if (gpt === 'PICPAY') {
+      if (
+        !filial.picPayPublicKey &&
+        !(filial.picPayClientId && filial.picPayClientSecret)
+      )
+        throw new ForbiddenException('PicPay não configurado.');
+
+      return {
+        apiKey: dec(filial.picPayPublicKey),
+        clientId: dec(filial.picPayClientId),
+        clientSecret: dec(filial.picPayClientSecret),
+        sellerToken: dec(filial.picPaySellerToken),
+        merchantId: filial.cnpj,
+      };
+    }
+
+    if (gpt === 'PAGSEGURO' || gpt === 'PAG_SEGURO') {
+      if (!filial.pagSeguroEmail || !filial.pagSeguroToken)
+        throw new ForbiddenException('PagSeguro não configurado.');
+
+      return {
+        email: dec(filial.pagSeguroEmail),
+        token: dec(filial.pagSeguroToken),
+        salt: dec(filial.pagSeguroSalt),
+        sandbox: !!filial.pagSeguroSandbox,
+      };
+    }
+
+    if (gpt === 'WOO_COMMERCE' || gpt === 'WOOCOMMERCE') {
+      if (
+        !filial.woocommerceUrl ||
+        !filial.woocommerceConsumerKey ||
+        !filial.woocommerceConsumerSecret
+      ) {
+        throw new ForbiddenException('WooCommerce não configurado.');
+      }
+
+      return {
+        url: dec(filial.woocommerceUrl),
+        consumerKey: dec(filial.woocommerceConsumerKey),
+        consumerSecret: dec(filial.woocommerceConsumerSecret),
+      };
+    }
+
+    if (gpt === 'NUVEM_SHOP' || gpt === 'NUVEMSHOP') {
+      if (!filial.nuvemShopAccessToken || !filial.nuvemShopStoreId)
+        throw new ForbiddenException('Nuvem Shop não configurada.');
+
+      return {
+        url: dec(filial.nuvemShopUrl),
+        accessToken: dec(filial.nuvemShopAccessToken),
+        storeId: dec(filial.nuvemShopStoreId),
+      };
+    }
+
+    if (gpt === 'SHOPIFY') {
+      if (!filial.shopifyUrl || !filial.shopifyAccessToken)
+        throw new ForbiddenException('Shopify não configurada.');
+
+      return {
+        baseUrl: dec(filial.shopifyUrl),
+        url: dec(filial.shopifyUrl),
+        accessToken: dec(filial.shopifyAccessToken),
+        shop: dec(filial.shopifyStoreId),
+        storeId: dec(filial.shopifyStoreId),
+        apiVersion: filial.shopifyApiVersion || process.env.SHOPIFY_API_VERSION || '2026-07',
       };
     }
 

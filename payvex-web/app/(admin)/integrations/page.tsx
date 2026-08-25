@@ -1,4 +1,3 @@
- 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 "use client";
@@ -22,7 +21,16 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const integrations = [
+interface GatewayConfig {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  logo: string;
+  statusField?: string;
+}
+
+const integrations: GatewayConfig[] = [
   {
     id: "stripe",
     name: "Stripe",
@@ -30,6 +38,7 @@ const integrations = [
     description:
       "Infraestrutura global com suporte a Cartões, Apple Pay e Google Pay.",
     logo: "https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/stripe.svg",
+    statusField: "stripeStatus",
   },
   {
     id: "mercadopago",
@@ -38,6 +47,7 @@ const integrations = [
     description:
       "Líder regional com suporte total a PIX, Checkout Pro e Parcelamento.",
     logo: "https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/mercadopago.svg",
+    statusField: "mercadoPagoStatus",
   },
   {
     id: "pagarme",
@@ -45,7 +55,26 @@ const integrations = [
     category: "Recorrência e Split",
     description:
       "Ideal para Marketplaces e assinaturas com split de pagamento automático.",
-    logo: "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/pagarme.svg",
+    logo: "https://www.pagar.me/favicon.ico",
+    statusField: "pagarMeStatus",
+  },
+  {
+    id: "pagbank",
+    name: "PagBank",
+    category: "Banco Digital",
+    description:
+      "Solução completa da PagBank para aceitar pagamentos via Pix, cartão e boleto.",
+    logo: "/icons/pagbank-logo.png",
+    statusField: "pagarBankStatus",
+  },
+  {
+    id: "asaas",
+    name: "Asaas",
+    category: "Pagamentos Brasileiros",
+    description:
+      "Plataforma de cobrança e pagamento brasileira com suporte a Pix, boleto e cartão.",
+    logo: "https://asaas.com.br/favicon.ico",
+    statusField: "asaasStatus",
   },
   {
     id: "cielo",
@@ -54,15 +83,83 @@ const integrations = [
     description:
       "A maior adquirente do Brasil. Suporte a mais de 80 bandeiras de cartão.",
     logo: "https://logodownload.org/wp-content/uploads/2014/07/cielo-logo-1.png",
+    statusField: "cieloStatus",
+  },
+  {
+    id: "stone",
+    name: "Stone",
+    category: "Adquirente Nacional",
+    description:
+      "Solução de pagamento da Stone com foco em adquirencia e split de receita.",
+    logo: "https://www.stone.com.br/favicon.ico",
+    statusField: "stoneStatus",
+  },
+  {
+    id: "nowpayments",
+    name: "NOWPayments",
+    category: "Criptomoedas",
+    description:
+      "Aceite pagamentos em mais de 160 criptomoedas com conversão automática.",
+    logo: "https://v3b.fal.media/files/b/0aa76770/37a0gmuxSn3xXC8LwAebM_RhB58Zyb.png",
+    statusField: "nowPaymentsStatus",
+  },
+  {
+    id: "coinbasecommerce",
+    name: "Coinbase Commerce",
+    category: "Criptomoedas",
+    description:
+      "Checkout cripto hospedado da Coinbase Commerce com reconciliação por webhook.",
+    logo: "https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/coinbase.svg",
+    statusField: "coinbaseCommerceStatus",
+  },
+  {
+    id: "bitpay",
+    name: "BitPay",
+    category: "Criptomoedas",
+    description:
+      "Invoices cripto com checkout BitPay, notificationURL e confirmação por consulta da invoice.",
+    logo: "https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/bitpay.svg",
+    statusField: "bitPayStatus",
   },
   {
     id: "picpay",
     name: "PicPay",
     category: "Carteira Digital",
-    description: "Pagamentos instantâneos via QR Code com altíssima conversão.",
-    logo: "https://logodownload.org/wp-content/uploads/2018/05/picpay-logo.png",
+    description:
+      "Pagamentos instantâneos via QR Code com altíssima conversão.",
+    logo: "https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/picpay.svg",
+    statusField: "picPayStatus",
+  },
+  {
+    id: "pagseguro",
+    name: "PagSeguro",
+    category: "Pagamentos Brasileiros",
+    description:
+      "Uma das maiores plataformas de pagamento do Brasil, com suporte a Pix, cartão e boleto.",
+    logo: "https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/pagseguro.svg",
+    statusField: "pagSeguroStatus",
   },
 ];
+
+/**
+ * 📋 MAPA CANÔNICO DE CREDENCIAIS POR GATEWAY
+ * Fonte de verdade: prisma/schema.prisma → modelo Filial.
+ * Lista as colunas reais usadas para determinar se o gateway está conectado.
+ */
+const gatewayCredentialMap: Record<string, string[]> = {
+  stripe: ["stripePublicKey", "stripeSecretKey"],
+  mercadopago: ["mercadoPagoAccessToken"],
+  pagarme: ["pagarMeAccessToken"],
+  pagbank: ["pagarBankPrivateKey"],
+  asaas: ["asaasApiKey"],
+  cielo: ["cieloMerchantId", "cieloMerchantKey"],
+  stone: ["stoneApiKey"],
+  nowpayments: ["nowPaymentsApiKey"],
+  coinbasecommerce: ["coinbaseCommerceApiKey"],
+  bitpay: ["bitPayToken"],
+  picpay: ["picPayClientSecret", "picPayPublicKey"],
+  pagseguro: ["pagSeguroEmail", "pagSeguroToken"],
+};
 
 export default function IntegrationsPage() {
   const router = useRouter();
@@ -116,18 +213,25 @@ export default function IntegrationsPage() {
     loadData();
   }, []);
 
-  const handleOpenModal = (gate: any) => {
+  const isGatewayConnected = (filial: any, gatewayId: string) => {
+    const credentialFields = gatewayCredentialMap[gatewayId];
+    if (!credentialFields) return false;
+    return credentialFields.some(
+      (field) => filial && filial[field] !== null && filial[field] !== undefined,
+    );
+  };
+
+  const handleOpenModal = (gate: GatewayConfig) => {
     if (userRole !== "ADMIN") return;
     if (!selectedFilial) return;
 
-    const isConnected =
-      !!selectedFilial[`${gate.id}SecretKey`] ||
-      !!selectedFilial.mercadoPagoAccessToken;
+    const isConnected = isGatewayConnected(selectedFilial, gate.id);
 
     setSelectedIntegration({
       ...gate,
       isConnected,
       filialName: selectedFilial.name,
+      filial: selectedFilial,
     });
     setIsModalOpen(true);
   };
@@ -136,7 +240,7 @@ export default function IntegrationsPage() {
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#82d616]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -150,7 +254,7 @@ export default function IntegrationsPage() {
             <ShieldAlert size={48} />
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-black text-[#3a416f]">
+            <h1 className="text-3xl font-black text-surface">
               Acesso às Chaves Restrito
             </h1>
             <p className="text-slate-500 max-w-md mx-auto">
@@ -180,11 +284,11 @@ export default function IntegrationsPage() {
         <div className="max-w-[1200px] mx-auto space-y-10 pb-10">
           <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[#3a416f]/60 font-semibold text-sm uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-surface/60 font-semibold text-sm uppercase tracking-wider">
                 <Blocks size={16} />
                 <span>Hub Config</span>
               </div>
-              <h1 className="text-4xl font-extrabold text-[#3a416f] tracking-tight">
+              <h1 className="text-4xl font-extrabold text-surface tracking-tight">
                 Gateways de{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3a416f] to-blue-500">
                   Pagamento
@@ -197,9 +301,9 @@ export default function IntegrationsPage() {
                 Configurar Unidade:
               </label>
               <div className="relative">
-                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-[#82d616]" />
+                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-primary" />
                 <select
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm font-bold text-[#3a416f] outline-none hover:border-[#82d616]/30 transition-all cursor-pointer"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm font-bold text-surface outline-none hover:border-primary/30 transition-all cursor-pointer"
                   value={selectedFilial?.id}
                   onChange={(e) =>
                     setSelectedFilial(
@@ -219,10 +323,10 @@ export default function IntegrationsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {integrations.map((item) => {
-              const isConnected =
-                !!selectedFilial?.[`${item.id}SecretKey`] ||
-                (item.id === "mercadopago" &&
-                  !!selectedFilial?.mercadoPagoAccessToken);
+              const isConnected = selectedFilial
+                ? isGatewayConnected(selectedFilial, item.id)
+                : false;
+
               return (
                 <motion.div
                   key={item.id}
@@ -232,7 +336,7 @@ export default function IntegrationsPage() {
                   <div
                     className={cn(
                       "relative h-full flex flex-col bg-white border border-slate-100 p-6 transition-all duration-300 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1)] rounded-[0.625rem]",
-                      "before:absolute before:inset-0 before:rounded-[0.625rem] before:opacity-0 hover:before:opacity-100 before:pointer-events-none before:border-2 before:border-[#82d616]/20",
+                      "before:absolute before:inset-0 before:rounded-[0.625rem] before:opacity-0 hover:before:opacity-100 before:pointer-events-none before:border-2 before:border-primary/20",
                     )}
                   >
                     <div className="flex justify-between items-center mb-8">
@@ -241,22 +345,28 @@ export default function IntegrationsPage() {
                           src={item.logo}
                           alt={item.name}
                           className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              "https://via.placeholder.com/48?text=" +
+                              encodeURIComponent(item.name.substring(0, 2));
+                          }}
                         />
                       </div>
                       <Badge
                         className={cn(
                           "px-3 py-1 font-bold transition-colors",
                           isConnected
-                            ? "bg-[#82d616]/10 text-[#82d616]"
+                            ? "bg-primary/10 text-primary"
                             : "bg-slate-50 text-slate-400 border-slate-100",
                         )}
                       >
                         {isConnected ? (
                           <span className="flex items-center gap-1.5">
                             <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#82d616] opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#82d616]"></span>
-                            </span>{" "}
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                            </span>
+                            {" "}
                             ATIVO
                           </span>
                         ) : (
@@ -267,10 +377,10 @@ export default function IntegrationsPage() {
 
                     <div className="space-y-3 flex-1">
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-[#82d616] uppercase tracking-[0.15em]">
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-[0.15em]">
                           {item.category}
                         </p>
-                        <h3 className="text-xl font-bold text-[#3a416f]">
+                        <h3 className="text-xl font-bold text-surface">
                           {item.name}
                         </h3>
                       </div>
@@ -285,8 +395,8 @@ export default function IntegrationsPage() {
                         className={cn(
                           "w-full h-12 rounded-[0.625rem] font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-md",
                           isConnected
-                            ? "bg-[#3a416f] hover:bg-[#2a3052] text-white"
-                            : "bg-[#82d616] hover:bg-[#71bd13] text-[#3a416f]",
+                            ? "bg-surface hover:bg-surface-hover text-white"
+                            : "bg-primary hover:bg-primary-dark text-surface",
                         )}
                       >
                         {isConnected ? (

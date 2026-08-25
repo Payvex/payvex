@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service/prisma.service';
 
@@ -11,7 +10,18 @@ export class FindCompanyByIdService {
       where: { id },
       include: {
         filiais: true, // Traz o array de filiais
-        users: true, // Traz o array de usuários (para pegarmos o Admin)
+        subscription: true,
+        users: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            companyId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
     });
   }

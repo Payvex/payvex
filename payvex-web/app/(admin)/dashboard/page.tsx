@@ -2,6 +2,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import {
+  FinancialAnalystChat,
+  type AnalystMessage,
+} from "@/components/ai/financial-analyst-chat";
 import { PageTransition } from "@/components/page-transition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
@@ -45,6 +49,17 @@ export default function DashboardPage() {
   const [selectedFilialId, setSelectedFilialId] = useState<string>("");
   const [selectedGateway, setSelectedGateway] = useState<string>("");
   const [user, setUser] = useState<any>(null);
+  const [hasAiAnalyst, setHasAiAnalyst] = useState(false);
+  const [subscriptionPlan, setSubscriptionPlan] = useState("");
+  const [analystQuestion, setAnalystQuestion] = useState("");
+  const [analystLoading, setAnalystLoading] = useState(false);
+  const [analystMessages, setAnalystMessages] = useState<AnalystMessage[]>([
+    {
+      role: "assistant",
+      content:
+        "Olá. Eu sou a IA Analítica da Payvex. Posso avaliar liquidez, taxas, pendências, aprovação por gateway e próximos passos com base nos dados deste dashboard.",
+    },
+  ]);
 
   const loadInitialData = async () => {
     try {
@@ -55,6 +70,15 @@ export default function DashboardPage() {
 
       const resCompany = await api.get(`/companies/${savedUser.companyId}`);
       setFiliais(resCompany.data.filiais || []);
+      const subscription = resCompany.data.subscription;
+      const normalizedPlan = String(subscription?.planName || "")
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
+      setSubscriptionPlan(subscription?.planName || "");
+      setHasAiAnalyst(
+        !!subscription?.hasAiAnalyst ||
+          ["expert_ai", "enterprise", "expert"].includes(normalizedPlan),
+      );
 
       const initialFilialId =
         savedUser.role === "USER" ? savedUser.filialId : "";
@@ -99,6 +123,75 @@ export default function DashboardPage() {
     fetchAllDashboardData(filial, gateway);
   };
 
+  const askFinancialAnalyst = async (question?: string) => {
+    const finalQuestion = (question || analystQuestion).trim();
+
+    if (!finalQuestion) {
+      toast.error("Digite uma pergunta para a IA analítica.");
+      return;
+    }
+
+    if (!hasAiAnalyst) {
+      toast.error("IA Analítica disponível apenas no plano Enterprise.");
+      return;
+    }
+
+    const nextMessages: AnalystMessage[] = [
+      ...analystMessages,
+      { role: "user", content: finalQuestion },
+    ];
+
+    setAnalystMessages(nextMessages);
+    setAnalystQuestion("");
+    setAnalystLoading(true);
+
+    try {
+      const response = await api.post("/ai/financial-analyst/chat", {
+        question: finalQuestion,
+        filialId: selectedFilialId || undefined,
+        gateway: selectedGateway || undefined,
+        messages: analystMessages.slice(-6),
+      });
+
+      setAnalystMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: response.data.answer,
+        },
+      ]);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Não consegui consultar a IA analítica agora.";
+      toast.error(message);
+      setAnalystMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: message,
+        },
+      ]);
+    } finally {
+      setAnalystLoading(false);
+    }
+  };
+
+  const GATEWAY_OPTIONS = [
+    { value: "STRIPE", label: "Stripe (Global)" },
+    { value: "MERCADO_PAGO", label: "Mercado Pago (LATAM)" },
+    { value: "PAGAR_ME", label: "Pagar.me (Recorrência)" },
+    { value: "PAGBANK", label: "PagBank (Banco Digital)" },
+    { value: "ASAAS", label: "Asaas (Cobranças)" },
+    { value: "STONE", label: "Stone (Adquirente)" },
+    { value: "NOWPAYMENTS", label: "NOWPayments (Cripto)" },
+    { value: "COINBASE_COMMERCE", label: "Coinbase Commerce (Cripto)" },
+    { value: "BITPAY", label: "BitPay (Cripto)" },
+    { value: "PICPAY", label: "PicPay (Carteira)" },
+    { value: "PAGSEGURO", label: "PagSeguro (Latam)" },
+    { value: "CIELO", label: "Cielo (Adquirente)" },
+  ];
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -106,6 +199,11 @@ export default function DashboardPage() {
     }).format(value);
 
   const isAdmin = user?.role === "ADMIN";
+  const quickAnalystPrompts = [
+    "Como está minha saúde financeira hoje?",
+    "Onde estou perdendo mais em taxas?",
+    "Quais pendências merecem atenção?",
+  ];
 
   return (
     <PageTransition>
@@ -113,7 +211,7 @@ export default function DashboardPage() {
         {/* TOP BAR / FILTROS */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-1">
-            <h1 className="text-4xl font-black text-[#3a416f] tracking-tight">
+            <h1 className="text-4xl font-black text-surface tracking-tight">
               Performance
             </h1>
             <p className="text-slate-500 text-sm font-medium">
@@ -129,14 +227,14 @@ export default function DashboardPage() {
                 !isAdmin && "opacity-60 bg-slate-50",
               )}
             >
-              <Building2 size={16} className="text-[#82d616] ml-2" />
+              <Building2 size={16} className="text-primary ml-2" />
               <select
                 disabled={!isAdmin}
                 value={selectedFilialId}
                 onChange={(e) =>
                   handleFilterChange(e.target.value, selectedGateway)
                 }
-                className="bg-transparent text-xs font-bold text-[#3a416f] outline-none w-full cursor-pointer"
+                className="bg-transparent text-xs font-bold text-surface outline-none w-full cursor-pointer"
               >
                 {isAdmin && <option value="">Rede: Global</option>}
                 {filiais.map((f) => (
@@ -155,11 +253,14 @@ export default function DashboardPage() {
                 onChange={(e) =>
                   handleFilterChange(selectedFilialId, e.target.value)
                 }
-                className="bg-transparent text-xs font-bold text-[#3a416f] outline-none w-full cursor-pointer"
+                className="bg-transparent text-xs font-bold text-surface outline-none w-full cursor-pointer"
               >
                 <option value="">Todos Gateways</option>
-                <option value="STRIPE">Stripe (Global)</option>
-                <option value="MERCADO_PAGO">Mercado Pago</option>
+                {GATEWAY_OPTIONS.map((gw) => (
+                  <option key={gw.value} value={gw.value}>
+                    {gw.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -167,7 +268,7 @@ export default function DashboardPage() {
 
         {/* CARDS DE MÉTRICAS */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-none shadow-xl bg-[#3a416f] text-white relative overflow-hidden group">
+          <Card className="border-none shadow-xl bg-surface text-white relative overflow-hidden group">
             <div className="absolute -right-2 -top-2 opacity-5 group-hover:scale-110 transition-transform">
               <TrendingUp size={100} />
             </div>
@@ -177,7 +278,7 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-[#82d616] tracking-tighter">
+              <div className="text-3xl font-black text-primary tracking-tighter">
                 {loading ? (
                   <Loader2 className="animate-spin h-6 w-6" />
                 ) : (
@@ -185,7 +286,7 @@ export default function DashboardPage() {
                 )}
               </div>
               <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1 font-bold">
-                <ShieldCheck size={12} className="text-[#82d616]" /> VALOR REAL
+                <ShieldCheck size={12} className="text-primary" /> VALOR REAL
                 SEM TAXAS
               </p>
             </CardContent>
@@ -199,7 +300,7 @@ export default function DashboardPage() {
               <DollarSign size={14} className="text-slate-300" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-black text-[#3a416f]">
+              <div className="text-2xl font-black text-surface">
                 {loading ? (
                   <Loader2 className="animate-spin h-5 w-5" />
                 ) : (
@@ -256,11 +357,11 @@ export default function DashboardPage() {
         </div>
 
         {/* GRÁFICO E INSIGHTS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-2 border-none shadow-sm bg-white p-6 min-h-[450px]">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-5">
+          <Card className="border-none shadow-sm bg-white p-6 min-h-[450px] xl:col-span-2">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="font-black text-[#3a416f]">
+                <h3 className="font-black text-surface">
                   Performance de Vendas
                 </h3>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">
@@ -269,7 +370,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex gap-4">
                 <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase">
-                  <div className="h-2.5 w-2.5 rounded-full bg-[#82d616]" />{" "}
+                  <div className="h-2.5 w-2.5 rounded-full bg-primary" />{" "}
                   Volume Bruto
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase">
@@ -282,7 +383,7 @@ export default function DashboardPage() {
             <div className="h-[320px] w-full">
               {loading ? (
                 <div className="h-full w-full flex items-center justify-center">
-                  <Loader2 className="animate-spin text-[#82d616]" />
+                  <Loader2 className="animate-spin text-primary" />
                 </div>
               ) : chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -378,53 +479,19 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          {/* INSIGHTS DINÂMICOS */}
-          <div className="bg-[#1a1f2e] rounded-[2rem] p-8 text-white relative overflow-hidden flex flex-col shadow-2xl">
-            <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-[#82d616] rounded-full blur-[60px] opacity-20"></div>
-
-            <div className="flex items-center gap-2 mb-8 text-[#82d616]">
-              <div className="p-2 bg-[#82d616]/10 rounded-lg">
-                <TrendingUp size={20} />
-              </div>
-              <h3 className="font-black uppercase text-[10px] tracking-[0.2em]">
-                Payvex Intelligence
-              </h3>
-            </div>
-
-            <div className="space-y-6 flex-1 relative z-10">
-              <div className="p-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/[0.08] transition-all">
-                <p className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-widest">
-                  Otimização
-                </p>
-                <p className="text-sm font-medium leading-relaxed">
-                  Você recuperou{" "}
-                  <span className="text-[#82d616] font-bold">
-                    {formatCurrency(
-                      stats?.totalFees ? stats.totalFees * 0.15 : 0,
-                    )}
-                  </span>{" "}
-                  em taxas ocultas este mês através do bypass inteligente.
-                </p>
-              </div>
-
-              <div className="p-5 bg-white/5 rounded-2xl border border-white/10">
-                <p className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-widest">
-                  Melhor Canal
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400">
-                    <Blocks size={16} />
-                  </div>
-                  <p className="text-sm font-bold text-white">
-                    {selectedGateway || "Multi-Gateway Ativo"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <button className="w-full mt-8 py-4 bg-[#82d616] text-[#3a416f] font-black text-xs uppercase rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-[#82d616]/20">
-              Exportar Analítico
-            </button>
+          <div className="xl:col-span-3">
+            <FinancialAnalystChat
+              hasAiAnalyst={hasAiAnalyst}
+              subscriptionPlan={subscriptionPlan}
+              stats={stats}
+              question={analystQuestion}
+              messages={analystMessages}
+              loading={analystLoading}
+              quickPrompts={quickAnalystPrompts}
+              formatCurrency={formatCurrency}
+              onQuestionChange={setAnalystQuestion}
+              onAsk={askFinancialAnalyst}
+            />
           </div>
         </div>
       </div>

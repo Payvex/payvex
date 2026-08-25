@@ -11,12 +11,14 @@ import {
   ArrowLeft,
   ArrowRight,
   Barcode,
+  Bitcoin,
   Building2,
   CircleDollarSign,
   CreditCard,
   DollarSign,
   Loader2,
   Mail,
+  Phone,
   ShieldAlert,
   User as UserIcon,
   Wallet,
@@ -36,12 +38,86 @@ export default function NewPaymentPage() {
   // Estado do Formulário
   const [formData, setFormData] = useState({
     amount: "",
+    currency: "BRL",
     filialId: "",
     gateway: "STRIPE",
     paymentMethod: "CREDIT_CARD",
+    cryptoCurrency: "USDT",
     customerName: "",
     customerEmail: "",
+    customerDocument: "",
+    customerPhone: "",
   });
+  const [availableGateways, setAvailableGateways] = useState<
+    { id: string; name: string }[]
+  >([]);
+
+  const gatewayFieldMap: Record<string, string[]> = {
+    STRIPE: ["stripeSecretKey"],
+    MERCADO_PAGO: ["mercadoPagoAccessToken"],
+    PAGAR_ME: ["pagarMeAccessToken"],
+    PAGBANK: ["pagarBankPrivateKey"],
+    ASAAS: ["asaasApiKey"],
+    STONE: ["stoneApiKey"],
+    NOWPAYMENTS: ["nowPaymentsApiKey"],
+    COINBASE_COMMERCE: ["coinbaseCommerceApiKey"],
+    BITPAY: ["bitPayToken"],
+    PICPAY: ["picPayClientSecret", "picPayPublicKey"],
+    PAGSEGURO: ["pagSeguroEmail", "pagSeguroToken"],
+    CIELO: ["cieloMerchantId", "cieloMerchantKey"],
+  };
+  const gatewayLabelMap: Record<string, string> = {
+    STRIPE: "Stripe (Global)",
+    MERCADO_PAGO: "Mercado Pago (LATAM)",
+    PAGAR_ME: "Pagar.me (Recorrência)",
+    PAGBANK: "PagBank (Banco Digital)",
+    ASAAS: "Asaas (Cobranças)",
+    STONE: "Stone (Adquirente)",
+    NOWPAYMENTS: "NOWPayments (Cripto)",
+    COINBASE_COMMERCE: "Coinbase Commerce (Cripto)",
+    BITPAY: "BitPay (Cripto)",
+    PICPAY: "PicPay (Carteira)",
+    PAGSEGURO: "PagSeguro (Latam)",
+    CIELO: "Cielo (Adquirente)",
+  };
+  const cryptoGatewayIds = new Set(["NOWPAYMENTS", "COINBASE_COMMERCE", "BITPAY"]);
+  const cryptoCurrencyOptionsByGateway: Record<string, string[]> = {
+    NOWPAYMENTS: ["USDT", "BTC", "ETH", "USDC", "LTC", "BCH", "DOGE", "DAI", "TRX", "XMR", "DASH"],
+    COINBASE_COMMERCE: ["AUTO", "BTC", "ETH", "USDC", "DAI", "DOGE"],
+    BITPAY: ["BTC", "BCH", "ETH", "USDC", "DOGE", "DAI", "XRP", "WBTC"],
+  };
+  const paymentMethodLabels: Record<string, string> = {
+    CREDIT_CARD: "Cartão",
+    PIX: "PIX",
+    BOLETO: "Boleto",
+    CRYPTO: "Cripto",
+  };
+  const paymentMethodsForGateway = (gateway: string) =>
+    cryptoGatewayIds.has(gateway) ? ["CRYPTO"] : ["CREDIT_CARD", "PIX", "BOLETO"];
+  const cryptoCurrencyOptionsForGateway = (gateway: string) =>
+    cryptoCurrencyOptionsByGateway[gateway] || cryptoCurrencyOptionsByGateway.NOWPAYMENTS;
+  const nextCryptoCurrencyForGateway = (gateway: string, current: string) => {
+    const options = cryptoCurrencyOptionsForGateway(gateway);
+    return options.includes(current) ? current : options[0];
+  };
+  const nextPaymentMethodForGateway = (gateway: string, current: string) => {
+    const methods = paymentMethodsForGateway(gateway);
+    return methods.includes(current) ? current : methods[0];
+  };
+  const configuredGatewaysForFilial = (filial: any) => {
+    const configured: { id: string; name: string }[] = [];
+    (Object.keys(gatewayFieldMap) as (keyof typeof gatewayFieldMap)[]).forEach((gw) => {
+      const fields = gatewayFieldMap[gw];
+      const hasCredentials = fields.some(
+        (field) => filial[field] !== null && filial[field] !== undefined,
+      );
+
+      if (hasCredentials) {
+        configured.push({ id: gw, name: gatewayLabelMap[gw] });
+      }
+    });
+    return configured;
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -61,10 +137,23 @@ export default function NewPaymentPage() {
           setFiliais(filiaisAtivas);
 
           if (filiaisAtivas.length > 0) {
+            const selectedFilial = filiaisAtivas[0];
             setFormData((prev) => ({
               ...prev,
-              filialId: filiaisAtivas[0].id,
+              filialId: selectedFilial.id,
             }));
+
+            const configured = configuredGatewaysForFilial(selectedFilial);
+            setAvailableGateways(configured);
+            if (configured.length > 0) {
+              const gateway = configured[0].id;
+              setFormData((prev) => ({
+                ...prev,
+                gateway,
+                paymentMethod: nextPaymentMethodForGateway(gateway, prev.paymentMethod),
+                cryptoCurrency: nextCryptoCurrencyForGateway(gateway, prev.cryptoCurrency),
+              }));
+            }
           }
         }
       } catch (e) {
@@ -108,7 +197,7 @@ export default function NewPaymentPage() {
   if (checkingAuth) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#82d616]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -122,7 +211,7 @@ export default function NewPaymentPage() {
             <ShieldAlert size={48} />
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-black text-[#3a416f]">
+            <h1 className="text-3xl font-black text-surface">
               Acesso Restrito
             </h1>
             <p className="text-slate-500 max-w-md mx-auto">
@@ -141,7 +230,7 @@ export default function NewPaymentPage() {
             </Button>
             <Button
               onClick={() => router.push("/transactions")}
-              className="bg-[#3a416f] text-white hover:bg-[#2a3052] rounded-xl font-bold"
+              className="bg-surface text-white hover:bg-surface-hover rounded-xl font-bold"
             >
               Ver Extrato de Vendas
             </Button>
@@ -156,12 +245,12 @@ export default function NewPaymentPage() {
     <PageTransition>
       <div className="max-w-4xl mx-auto space-y-8 pb-10">
         <header className="space-y-1 text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-2 text-[#3a416f]/60 font-semibold text-sm uppercase tracking-widest">
-            <CircleDollarSign size={16} className="text-[#82d616]" />
+          <div className="flex items-center justify-center md:justify-start gap-2 text-surface/60 font-semibold text-sm uppercase tracking-widest">
+            <CircleDollarSign size={16} className="text-primary" />
             <span>Terminal de Vendas</span>
           </div>
-          <h1 className="text-4xl font-extrabold text-[#3a416f]">
-            Criar Novo <span className="text-[#82d616]">Pagamento</span>
+          <h1 className="text-4xl font-extrabold text-surface">
+            Criar Novo <span className="text-primary">Pagamento</span>
           </h1>
           <p className="text-slate-500">
             Gere cobranças utilizando as credenciais de suas filiais.
@@ -175,16 +264,27 @@ export default function NewPaymentPage() {
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white p-8 rounded-[0.625rem] border border-slate-100 shadow-sm space-y-6">
               <div className="space-y-3">
-                <Label className="text-[#3a416f] font-bold flex items-center gap-2">
-                  <Building2 size={16} className="text-[#82d616]" /> Selecionar
+                <Label className="text-surface font-bold flex items-center gap-2">
+                  <Building2 size={16} className="text-primary" /> Selecionar
                   Filial
                 </Label>
                 <select
-                  className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-[#3a416f] outline-none focus:border-[#82d616] transition-all"
+                  className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-surface outline-none focus:border-primary transition-all"
                   value={formData.filialId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, filialId: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const filialId = e.target.value;
+                    const filial = filiais.find((f) => f.id === filialId);
+                    const configured = filial ? configuredGatewaysForFilial(filial) : [];
+                    const gateway = configured[0]?.id || formData.gateway;
+                    setAvailableGateways(configured);
+                    setFormData({
+                      ...formData,
+                      filialId,
+                      gateway,
+                      paymentMethod: nextPaymentMethodForGateway(gateway, formData.paymentMethod),
+                      cryptoCurrency: nextCryptoCurrencyForGateway(gateway, formData.cryptoCurrency),
+                    });
+                  }}
                   required
                 >
                   {filiais.map((f) => (
@@ -197,9 +297,9 @@ export default function NewPaymentPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <Label className="text-[#3a416f] font-bold">Valor</Label>
+                  <Label className="text-surface font-bold">Valor</Label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-3.5 h-5 w-5 text-[#82d616]" />
+                    <DollarSign className="absolute left-3 top-3.5 h-5 w-5 text-primary" />
                     <Input
                       type="number"
                       step="0.01"
@@ -215,22 +315,31 @@ export default function NewPaymentPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label className="text-[#3a416f] font-bold">Gateway</Label>
+                  <Label className="text-surface font-bold">Gateway</Label>
                   <select
-                    className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-[#3a416f] outline-none"
+                    className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-surface outline-none"
                     value={formData.gateway}
-                    onChange={(e) =>
-                      setFormData({ ...formData, gateway: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const gateway = e.target.value;
+                      setFormData({
+                        ...formData,
+                        gateway,
+                        paymentMethod: nextPaymentMethodForGateway(gateway, formData.paymentMethod),
+                        cryptoCurrency: nextCryptoCurrencyForGateway(gateway, formData.cryptoCurrency),
+                      });
+                    }}
                   >
-                    <option value="STRIPE">Stripe (Global)</option>
-                    <option value="MERCADO_PAGO">Mercado Pago (LATAM)</option>
+                    {availableGateways.map((gw) => (
+                      <option key={gw.id} value={gw.id}>
+                        {gw.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
               <div className="space-y-4 pt-4 border-t border-slate-100">
-                <h3 className="text-[#3a416f] font-bold text-sm uppercase tracking-wider text-slate-400">
+                <h3 className="text-surface font-bold text-sm uppercase tracking-wider text-slate-400">
                   Cliente
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -265,19 +374,48 @@ export default function NewPaymentPage() {
                       required
                     />
                   </div>
+                  <div className="relative">
+                    <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="CPF/CNPJ"
+                      className="pl-10 h-12 rounded-xl"
+                      value={formData.customerDocument}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          customerDocument: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Telefone"
+                      className="pl-10 h-12 rounded-xl"
+                      value={formData.customerPhone}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          customerPhone: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="bg-[#3a416f] p-8 rounded-[0.625rem] text-white shadow-xl relative overflow-hidden">
-              <div className="absolute top-[-20%] right-[-20%] w-32 h-32 bg-[#82d616] rounded-full blur-[60px] opacity-20"></div>
+            <div className="bg-surface p-8 rounded-[0.625rem] text-white shadow-xl relative overflow-hidden">
+              <div className="absolute top-[-20%] right-[-20%] w-32 h-32 bg-primary rounded-full blur-[60px] opacity-20"></div>
               <h3 className="font-bold mb-6 flex items-center gap-2">
-                <Zap size={18} className="text-[#82d616]" /> Método
+                <Zap size={18} className="text-primary" /> Método
               </h3>
               <div className="space-y-3 relative z-10">
-                {["CREDIT_CARD", "PIX", "BOLETO"].map((method) => (
+                {paymentMethodsForGateway(formData.gateway).map((method) => (
                   <button
                     key={method}
                     type="button"
@@ -287,7 +425,7 @@ export default function NewPaymentPage() {
                     className={cn(
                       "w-full p-4 rounded-xl border flex items-center justify-between transition-all",
                       formData.paymentMethod === method
-                        ? "border-[#82d616] bg-[#82d616]/10"
+                        ? "border-primary bg-primary/10"
                         : "border-white/10 hover:bg-white/5",
                     )}
                   >
@@ -296,37 +434,56 @@ export default function NewPaymentPage() {
                         <CreditCard size={20} />
                       ) : method === "PIX" ? (
                         <Wallet size={20} />
-                      ) : (
+                      ) : method === "BOLETO" ? (
                         <Barcode size={20} />
+                      ) : (
+                        <Bitcoin size={20} />
                       )}
                       <span className="font-bold text-sm">
-                        {method === "CREDIT_CARD"
-                          ? "Cartão"
-                          : method === "PIX"
-                            ? "PIX"
-                            : "Boleto"}
+                        {paymentMethodLabels[method]}
                       </span>
                     </div>
                     {formData.paymentMethod === method && (
-                      <div className="h-2 w-2 bg-[#82d616] rounded-full shadow-[0_0_10px_#82d616]" />
+                      <div className="h-2 w-2 bg-primary rounded-full shadow-[0_0_10px_#8DFF00]" />
                     )}
                   </button>
                 ))}
               </div>
+
+              {formData.paymentMethod === "CRYPTO" && (
+                <div className="mt-5 space-y-3 relative z-10">
+                  <Label className="text-slate-300 font-bold text-[10px] uppercase tracking-widest">
+                    Moeda cripto
+                  </Label>
+                  <select
+                    className="w-full h-12 px-4 bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-white outline-none focus:border-primary"
+                    value={formData.cryptoCurrency}
+                    onChange={(e) =>
+                      setFormData({ ...formData, cryptoCurrency: e.target.value })
+                    }
+                  >
+                    {cryptoCurrencyOptionsForGateway(formData.gateway).map((currency) => (
+                      <option key={currency} value={currency} className="text-surface">
+                        {currency}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
                 <div className="flex justify-between items-center text-sm font-medium">
                   <span className="text-slate-400 font-bold uppercase text-[10px]">
                     Total
                   </span>
-                  <span className="text-xl font-black text-[#82d616]">
+                  <span className="text-xl font-black text-primary">
                     R$ {formData.amount || "0,00"}
                   </span>
                 </div>
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#82d616] hover:bg-[#71bd13] text-[#3a416f] font-black h-14 rounded-xl shadow-[0_0_20px_rgba(130,214,22,0.3)] transition-all"
+                  className="w-full bg-primary hover:bg-primary-dark text-surface font-black h-14 rounded-xl shadow-[0_0_20px_rgba(141,255,0,0.3)] transition-all"
                 >
                   {loading ? (
                     <Loader2 className="animate-spin" />

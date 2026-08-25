@@ -37,13 +37,12 @@ export function DeleteApiKeyModal({
 
         <div className="p-8 space-y-4 text-center">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-[#3a416f] leading-tight">
+            <DialogTitle className="text-2xl font-black text-surface leading-tight">
               Revogar Chave <br />
               <span className="text-red-500">API?</span>
             </DialogTitle>
             <DialogDescription className="text-slate-500 font-medium text-sm pt-2">
-              Você está prestes a desativar a chave{" "}
-              <strong className="text-[#3a416f]">"{keyName}"</strong>. Isso
+              Você está prestes a desativar a chave {`"`}{keyName}{`"`}. Isso
               interromperá imediatamente todas as integrações vinculadas a ela.
             </DialogDescription>
           </DialogHeader>
@@ -60,7 +59,7 @@ export function DeleteApiKeyModal({
             <Button
               onClick={onConfirm}
               disabled={loading}
-              className="flex-1 bg-[#3a416f] text-white hover:bg-red-600 rounded-xl uppercase font-black text-[10px] tracking-widest shadow-lg shadow-red-200 transition-all gap-2"
+              className="flex-1 bg-surface text-white hover:bg-red-600 rounded-xl uppercase font-black text-[10px] tracking-widest shadow-lg shadow-red-200 transition-all gap-2"
             >
               {loading ? (
                 <Loader2 size={14} className="animate-spin" />
